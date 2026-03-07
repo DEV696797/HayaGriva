@@ -8,16 +8,16 @@ from sklearn.cluster import KMeans
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.tree import plot_tree
 import networkx as nx
+import matplotlib.pyplot as plt
+from pptx import Presentation
 import feedparser
 import random
-from pptx import Presentation
-import matplotlib.pyplot as plt
 
 st.set_page_config(layout="wide")
 
-# -----------------------------
+# -------------------------
 # PREMIUM THEME
-# -----------------------------
+# -------------------------
 
 st.markdown("""
 <style>
@@ -36,9 +36,9 @@ font-size:18px;
 </style>
 """, unsafe_allow_html=True)
 
-# -----------------------------
+# -------------------------
 # LUXURY NEWS RIBBON
-# -----------------------------
+# -------------------------
 
 feeds=[
 "https://www.businessoffashion.com/feed/",
@@ -57,9 +57,9 @@ f"<div class='ticker'>Luxury Industry News: {' ✦ '.join(news)}</div>",
 unsafe_allow_html=True
 )
 
-# -----------------------------
+# -------------------------
 # QUOTE RIBBON
-# -----------------------------
+# -------------------------
 
 quotes=[
 "Luxury brands sell dreams not products — Bernard Arnault",
@@ -70,9 +70,9 @@ quotes=[
 
 st.markdown(f"### 💎 Luxury Insight: {random.choice(quotes)}")
 
-# -----------------------------
+# -------------------------
 # SIDEBAR LOGOS
-# -----------------------------
+# -------------------------
 
 st.sidebar.title("Luxury Houses")
 
@@ -87,15 +87,15 @@ logos=[
 for logo in logos:
     st.sidebar.image(logo,width=160)
 
-# -----------------------------
+# -------------------------
 # TITLE
-# -----------------------------
+# -------------------------
 
 st.title("HayaGriva Luxury Consumer Intelligence Platform")
 
-# -----------------------------
+# -------------------------
 # DATA UPLOAD
-# -----------------------------
+# -------------------------
 
 file=st.file_uploader("Upload Luxury Emotion Dataset")
 
@@ -108,11 +108,11 @@ if file:
     fomo=df.iloc[:,15]
     purchase=df.iloc[:,20]
 
-# -----------------------------
+# -------------------------
 # MULTIPLE REGRESSION
-# -----------------------------
+# -------------------------
 
-    st.header("Multiple Linear Regression (SPSS Equivalent)")
+    st.header("Multiple Linear Regression")
 
     X=pd.DataFrame({
         "Emotion":emotion,
@@ -128,9 +128,9 @@ if file:
 
     st.metric("R²",round(model.rsquared,3))
 
-# -----------------------------
-# SEM MODEL
-# -----------------------------
+# -------------------------
+# STRUCTURAL EQUATION MODEL
+# -------------------------
 
     st.header("Structural Equation Model")
 
@@ -140,49 +140,43 @@ if file:
 
     G=nx.DiGraph()
 
-    G.add_edge("Celebrity","FOMO")
-    G.add_edge("FOMO","Emotion")
-    G.add_edge("Emotion","Purchase")
+    G.add_edge("Celebrity","FOMO",weight=path_CF)
+    G.add_edge("FOMO","Emotion",weight=path_FE)
+    G.add_edge("Emotion","Purchase",weight=path_EP)
 
     pos=nx.spring_layout(G)
 
-    edge_x=[]
-    edge_y=[]
+    fig=go.Figure()
 
     for edge in G.edges():
         x0,y0=pos[edge[0]]
         x1,y1=pos[edge[1]]
-        edge_x.extend([x0,x1,None])
-        edge_y.extend([y0,y1,None])
 
-    fig=go.Figure()
-
-    fig.add_trace(go.Scatter(x=edge_x,y=edge_y,mode='lines'))
-
-    node_x=[]
-    node_y=[]
+        fig.add_trace(go.Scatter(
+            x=[x0,x1],
+            y=[y0,y1],
+            mode="lines"
+        ))
 
     for node in G.nodes():
-        x,y=pos[node]
-        node_x.append(x)
-        node_y.append(y)
 
-    fig.add_trace(go.Scatter(
-        x=node_x,
-        y=node_y,
-        mode='markers+text',
-        text=list(G.nodes()),
-        textposition="bottom center",
-        marker=dict(size=30)
-    ))
+        x,y=pos[node]
+
+        fig.add_trace(go.Scatter(
+            x=[x],
+            y=[y],
+            text=node,
+            mode="markers+text",
+            marker=dict(size=30)
+        ))
 
     st.plotly_chart(fig)
 
-# -----------------------------
-# PSYCHOGRAPHIC SEGMENTATION
-# -----------------------------
+# -------------------------
+# PSYCHOGRAPHIC SEGMENTS
+# -------------------------
 
-    st.header("Luxury Consumer Segments")
+    st.header("Luxury Consumer Segmentation")
 
     X_seg=df[[df.columns[5],df.columns[10],df.columns[15]]]
 
@@ -207,9 +201,9 @@ if file:
 
     st.plotly_chart(fig)
 
-# -----------------------------
-# DECISION TREE (Explainable AI)
-# -----------------------------
+# -------------------------
+# DECISION TREE
+# -------------------------
 
     st.header("Explainable AI Decision Tree")
 
@@ -219,43 +213,58 @@ if file:
 
     fig,ax=plt.subplots(figsize=(10,6))
 
-    plot_tree(model_tree,
-    feature_names=["Emotion","Celebrity","FOMO"],
-    filled=True)
+    plot_tree(
+        model_tree,
+        feature_names=["Emotion","Celebrity","FOMO"],
+        filled=True
+    )
 
     st.pyplot(fig)
 
-    st.markdown("""
-This decision tree shows which psychological factors most strongly drive luxury purchase decisions.
-""")
+# -------------------------
+# CONSUMER INFLUENCE NETWORK
+# -------------------------
 
-# -----------------------------
-# STRATEGY RECOMMENDATION ENGINE
-# -----------------------------
+    st.header("Luxury Consumer Influence Network")
 
-    st.header("Luxury Strategy Recommendation Engine")
+    net=nx.Graph()
+
+    net.add_edges_from([
+        ("Emotion","Identity"),
+        ("Celebrity","Aspirational Influence"),
+        ("FOMO","Social Comparison"),
+        ("Identity","Purchase"),
+        ("Aspirational Influence","Purchase")
+    ])
+
+    pos=nx.spring_layout(net)
+
+    nx.draw(net,pos,with_labels=True,node_size=2000)
+
+    st.pyplot()
+
+# -------------------------
+# STRATEGY ENGINE
+# -------------------------
+
+    st.header("Luxury Strategy Recommendation")
 
     avg_emotion=np.mean(emotion)
 
     if avg_emotion>15:
-
-        strategy="Focus on emotional storytelling and brand heritage campaigns."
-
+        strategy="Focus on emotional storytelling and heritage branding."
     elif avg_emotion>10:
-
-        strategy="Increase celebrity endorsements and aspirational advertising."
-
+        strategy="Increase celebrity endorsements and aspirational marketing."
     else:
-
-        strategy="Build brand prestige and exclusivity before expanding marketing."
+        strategy="Build exclusivity and prestige positioning."
 
     st.success(strategy)
 
-# -----------------------------
-# GLOBAL LUXURY MARKET PREDICTION
-# -----------------------------
+# -------------------------
+# MARKET FORECAST
+# -------------------------
 
-    st.header("Global Luxury Market Prediction")
+    st.header("Global Luxury Market Forecast")
 
     years=np.arange(2024,2030)
 
@@ -272,13 +281,27 @@ This decision tree shows which psychological factors most strongly drive luxury 
 
     st.plotly_chart(fig)
 
-    st.markdown("""
-Global luxury market projected to grow strongly driven by emerging markets and digital luxury commerce.
+# -------------------------
+# AI RESEARCH GENERATOR
+# -------------------------
+
+    st.header("Auto Research Discussion")
+
+    st.markdown(f"""
+
+The regression results indicate that emotional response significantly predicts luxury purchase intention.
+
+Emotion coefficient: **{round(model.params[1],3)}**
+
+This finding aligns with luxury strategy theory suggesting consumers purchase luxury primarily for symbolic meaning and emotional resonance rather than functional attributes.
+
+Celebrity influence increases aspirational appeal but is not the dominant predictor of purchasing behaviour.
+
 """)
 
-# -----------------------------
+# -------------------------
 # PPT REPORT
-# -----------------------------
+# -------------------------
 
     st.header("Download Research Report")
 
@@ -287,7 +310,7 @@ Global luxury market projected to grow strongly driven by emerging markets and d
         prs=Presentation()
 
         slide=prs.slides.add_slide(prs.slide_layouts[0])
-        slide.shapes.title.text="HayaGriva Luxury Analytics"
+        slide.shapes.title.text="Luxury Consumer Intelligence"
 
         slide=prs.slides.add_slide(prs.slide_layouts[1])
         slide.shapes.title.text="Regression Results"
@@ -297,14 +320,14 @@ Global luxury market projected to grow strongly driven by emerging markets and d
 
         return "luxury_report.pptx"
 
-    if st.button("Generate PowerPoint Report"):
+    if st.button("Generate PPT"):
 
         file=generate_ppt()
 
         with open(file,"rb") as f:
 
             st.download_button(
-                "Download PPT",
+                "Download PowerPoint",
                 f,
                 file_name="luxury_report.pptx"
             )

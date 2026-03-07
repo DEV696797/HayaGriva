@@ -9,3 +9,4 @@ networkx
 python-pptx
 requests
 openpyxl
+matplotlib
