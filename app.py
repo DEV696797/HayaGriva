@@ -5,14 +5,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 import statsmodels.api as sm
 from sklearn.cluster import KMeans
-import networkx as nx
-import matplotlib.pyplot as plt
+from pptx import Presentation
 
 st.set_page_config(layout="wide")
 
-# -------------------
+# ------------------
 # THEME
-# -------------------
+# ------------------
 
 st.markdown("""
 <style>
@@ -27,13 +26,11 @@ st.title("HayaGriva Luxury Consumer Intelligence")
 
 st.subheader("Effect of Emotions on Purchase Intention of Luxury Products")
 
-# -------------------
+# ------------------
 # DATA UPLOAD
-# -------------------
+# ------------------
 
 emotion_file=st.file_uploader("Upload Emotional Dataset")
-
-demo_file=st.file_uploader("Upload Demographic Dataset")
 
 if emotion_file:
 
@@ -46,9 +43,9 @@ if emotion_file:
     fomo=df.iloc[:,15]
     purchase=df.iloc[:,20]
 
-# -------------------
+# ------------------
 # REGRESSION
-# -------------------
+# ------------------
 
     st.header("Multiple Linear Regression")
 
@@ -68,48 +65,162 @@ if emotion_file:
         st.dataframe(model.summary2().tables[1])
 
     with col2:
+
         st.markdown("""
-### Insights
+### Key Insights
 
-• Emotion has the **strongest impact on purchase intention**
+• Emotional response has the strongest effect on purchase intention
 
-• Celebrity influence strengthens aspirational identity
+• Celebrity endorsement enhances aspirational perception
 
 • FOMO drives urgency and social comparison
 
-• Psychological factors strongly explain luxury consumption
+• Emotional satisfaction is the primary luxury driver
 """)
 
-# -------------------
-# DRIVER IMPACT
-# -------------------
+# ------------------
+# DRIVER COMPARISON
+# ------------------
 
     st.header("Driver Impact Comparison")
 
     drivers=pd.DataFrame({
-
     "Driver":["Emotion","Celebrity","FOMO"],
-    "Impact":[emotion.mean(),celebrity.mean(),fomo.mean()]
-
+    "Score":[emotion.mean(),celebrity.mean(),fomo.mean()]
     })
 
-    col1,col2=st.columns([2,1])
+    fig=px.bar(drivers,x="Driver",y="Score")
 
-    fig=px.bar(drivers,x="Driver",y="Impact")
+    st.plotly_chart(fig,use_container_width=True)
 
-    with col1:
-        st.plotly_chart(fig,use_container_width=True)
+# ------------------
+# SCATTER RELATIONSHIP
+# ------------------
 
-    with col2:
-        st.markdown("""
-### Interpretation
+    st.header("Emotion vs Purchase Intention")
 
-• Emotional gratification dominates luxury motivation
+    scatter=px.scatter(
+    x=emotion,
+    y=purchase,
+    trendline="ols"
+    )
 
-• Celebrity influence builds aspirational perception
+    st.plotly_chart(scatter,use_container_width=True)
 
-• FOMO creates urgency to purchase luxury products
-""")
+# ------------------
+# HIGHLIGHT TABLE
+# ------------------
 
-# -------------------
-# SCATTER RELATION
+    st.header("Psychological Highlight Table")
+
+    matrix=pd.DataFrame({
+    "Emotion":emotion,
+    "Celebrity":celebrity,
+    "FOMO":fomo,
+    "Purchase":purchase
+    })
+
+    heat=px.imshow(matrix.corr(),text_auto=True)
+
+    st.plotly_chart(heat,use_container_width=True)
+
+# ------------------
+# SEGMENTATION
+# ------------------
+
+    st.header("Luxury Consumer Segmentation")
+
+    seg=pd.DataFrame({
+    "Emotion":emotion,
+    "Celebrity":celebrity,
+    "FOMO":fomo
+    })
+
+    kmeans=KMeans(n_clusters=3)
+
+    df["segment"]=kmeans.fit_predict(seg)
+
+    bubble=px.scatter(
+    df,
+    x=emotion,
+    y=purchase,
+    size=fomo,
+    color=df["segment"]
+    )
+
+    st.plotly_chart(bubble,use_container_width=True)
+
+# ------------------
+# 3D PSYCHOLOGICAL MAP
+# ------------------
+
+    st.header("Luxury Consumer Psychological Map")
+
+    fig=px.scatter_3d(
+    df,
+    x=emotion,
+    y=celebrity,
+    z=fomo,
+    size=purchase,
+    color=df["segment"]
+    )
+
+    st.plotly_chart(fig,use_container_width=True)
+
+# ------------------
+# PURCHASE SIMULATOR
+# ------------------
+
+st.header("Luxury Purchase Probability Simulator")
+
+emotion_input=st.slider("Emotion",1,20,10)
+celebrity_input=st.slider("Celebrity Influence",1,20,10)
+fomo_input=st.slider("FOMO",1,20,10)
+
+score=-2.120 + 0.757*emotion_input + 0.199*celebrity_input + 0.314*fomo_input
+
+st.success(f"Predicted Purchase Score: {round(score,2)}")
+
+# ------------------
+# PPT GENERATOR
+# ------------------
+
+st.header("Generate Gamma-Compatible Slides")
+
+def generate_ppt():
+
+    prs=Presentation()
+
+    slide=prs.slides.add_slide(prs.slide_layouts[0])
+    slide.shapes.title.text="Luxury Consumer Analytics"
+
+    slide=prs.slides.add_slide(prs.slide_layouts[1])
+    slide.shapes.title.text="Key Findings"
+    slide.placeholders[1].text="""
+Emotion strongly drives luxury purchase intention.
+Celebrity endorsement builds aspiration.
+FOMO increases urgency in buying behaviour.
+"""
+
+    slide=prs.slides.add_slide(prs.slide_layouts[1])
+    slide.shapes.title.text="Strategic Implications"
+    slide.placeholders[1].text="""
+Luxury brands must prioritize emotional storytelling,
+identity marketing and exclusivity strategies.
+"""
+
+    prs.save("luxury_report.pptx")
+
+    return "luxury_report.pptx"
+
+if st.button("Generate PPT"):
+
+    file=generate_ppt()
+
+    with open(file,"rb") as f:
+
+        st.download_button(
+        "Download Presentation",
+        f,
+        file_name="luxury_report.pptx"
+        )
