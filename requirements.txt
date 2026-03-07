@@ -4,7 +4,9 @@ numpy
 plotly
 statsmodels
 scikit-learn
+networkx
 feedparser
 matplotlib
-openpyxl
+reportlab
 requests
+openpyxl
