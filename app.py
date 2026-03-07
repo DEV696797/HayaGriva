@@ -319,4 +319,39 @@ st.write("""
 Emotion is the strongest driver of luxury purchase intention. 
 Luxury brands should prioritize emotional storytelling, aspirational identity building and exclusivity strategies.
 """)
-)
+
+# -------------------------------
+# PPT EXPORT
+# -------------------------------
+
+st.header("Generate Presentation")
+
+def generate_ppt():
+
+    prs = Presentation()
+
+    slide = prs.slides.add_slide(prs.slide_layouts[0])
+    slide.shapes.title.text = "Luxury Consumer Research"
+
+    slide = prs.slides.add_slide(prs.slide_layouts[1])
+    slide.shapes.title.text = "Key Findings"
+    slide.placeholders[1].text = """
+Emotion strongly drives luxury purchase intention.
+Celebrity influence increases aspiration.
+FOMO accelerates luxury purchase urgency.
+"""
+
+    prs.save("luxury_report.pptx")
+
+    return "luxury_report.pptx"
+
+if st.button("Generate PPT"):
+
+    file = generate_ppt()
+
+    with open(file,"rb") as f:
+        st.download_button(
+            "Download Presentation",
+            f,
+            file_name="luxury_report.pptx"
+        )
