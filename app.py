@@ -4,7 +4,6 @@ import numpy as np
 import plotly.express as px
 import statsmodels.api as sm
 from sklearn.cluster import KMeans
-from pptx import Presentation
 
 st.set_page_config(layout="wide")
 
@@ -15,25 +14,24 @@ st.set_page_config(layout="wide")
 st.markdown("""
 <style>
 
-html, body, [class*="css"]  {
-    font-family: "Times New Roman", Times, serif;
-    color: #ffffff;
+html, body, [class*="css"] {
+font-family: "Times New Roman", serif;
+color:#ffffff;
 }
 
 .stApp{
 background:linear-gradient(135deg,#1b0036,#3b0a63,#5e17eb);
-color:#ffffff;
 }
 
-h1,h2,h3,h4,h5,h6{
+h1,h2,h3,h4,h5{
 font-family:"Times New Roman",serif;
 color:#ffffff;
 }
 
 p{
 font-family:"Times New Roman",serif;
-color:#ffffff;
 font-size:18px;
+color:#ffffff;
 }
 
 </style>
@@ -42,12 +40,7 @@ font-size:18px;
 st.title("HayaGriva Luxury Consumer Intelligence")
 st.subheader("Effect of Emotions on Purchase Intention of Luxury Products")
 
-# ------------------------------------------------
-# FILE UPLOAD
-# ------------------------------------------------
-
 emotion_file = st.file_uploader("Upload Emotional Dataset")
-
 demo_file = st.file_uploader("Upload Demographic Dataset")
 
 # ------------------------------------------------
@@ -92,7 +85,7 @@ if emotion_file:
 
 • Emotional response has the strongest statistical impact on luxury purchase intention  
 
-• Celebrity endorsements increase aspirational perception  
+• Celebrity endorsements reinforce aspirational perception  
 
 • FOMO increases urgency and social comparison  
 
@@ -120,11 +113,11 @@ if emotion_file:
         st.markdown("""
 ### Interpretation
 
-• Emotional gratification dominates luxury consumption  
+• Emotional gratification dominates luxury motivation  
 
-• Celebrity endorsements reinforce aspirational identity  
+• Celebrity endorsements strengthen aspirational identity  
 
-• FOMO increases urgency in luxury purchasing
+• FOMO accelerates purchase urgency
 """)
 
 # ------------------------------------------------
@@ -148,34 +141,11 @@ if emotion_file:
         st.markdown("""
 ### Insights
 
-• Emotion dominates luxury motivation  
+• Emotion dominates luxury purchasing behaviour  
 
-• Celebrity influence reinforces aspirational identity  
+• Celebrity influence supports aspirational branding  
 
-• FOMO acts as a psychological trigger
-""")
-
-# ------------------------------------------------
-# SCATTER RELATIONSHIP
-# ------------------------------------------------
-
-    st.header("Emotion vs Purchase Intention")
-
-    col1,col2 = st.columns([2,1])
-
-    with col1:
-        fig = px.scatter(x=emotion,y=purchase,trendline="ols")
-        st.plotly_chart(fig,use_container_width=True)
-
-    with col2:
-        st.markdown("""
-### Insights
-
-• Emotional attachment strongly predicts purchase intention  
-
-• Consumers with stronger emotional engagement buy luxury more frequently  
-
-• Emotional branding drives symbolic consumption
+• FOMO acts as psychological accelerator
 """)
 
 # ------------------------------------------------
@@ -194,24 +164,18 @@ if emotion_file:
     col1,col2 = st.columns([2,1])
 
     with col1:
-
-        heat = px.imshow(
-            matrix.corr(),
-            text_auto=True,
-            color_continuous_scale="Purples"
-        )
-
+        heat = px.imshow(matrix.corr(),text_auto=True,color_continuous_scale="Purples")
         st.plotly_chart(heat,use_container_width=True)
 
     with col2:
         st.markdown("""
 ### Insights
 
-• Emotion and purchase intention show the highest correlation  
+• Emotion and purchase intention show strongest correlation  
 
 • Celebrity influence moderately affects emotional engagement  
 
-• FOMO amplifies emotional luxury desire
+• FOMO amplifies luxury desire
 """)
 
 # ------------------------------------------------
@@ -233,19 +197,10 @@ if emotion_file:
     col1,col2 = st.columns([2,1])
 
     with col1:
-
-        fig = px.scatter(
-            df,
-            x=emotion,
-            y=purchase,
-            size=fomo,
-            color=df["segment"]
-        )
-
+        fig = px.scatter(df,x=emotion,y=purchase,size=fomo,color=df["segment"])
         st.plotly_chart(fig,use_container_width=True)
 
     with col2:
-
         st.markdown("""
 ### Segments
 
@@ -260,31 +215,49 @@ FOMO Buyers
 """)
 
 # ------------------------------------------------
-# FUNNEL
+# AI LUXURY STRATEGY ADVISOR
 # ------------------------------------------------
 
-    st.header("Luxury Consumer Journey")
+    st.header("AI Luxury Strategy Advisor")
 
-    funnel = pd.DataFrame({
-        "Stage":["Awareness","Aspiration","Emotional Attachment","Purchase"],
-        "Value":[100,80,60,40]
-    })
+    avg_emotion = emotion.mean()
+    avg_celebrity = celebrity.mean()
+    avg_fomo = fomo.mean()
 
-    col1,col2 = st.columns([2,1])
+    if avg_emotion > avg_celebrity and avg_emotion > avg_fomo:
 
-    with col1:
-        fig = px.funnel(funnel,x="Value",y="Stage")
-        st.plotly_chart(fig,use_container_width=True)
-
-    with col2:
         st.markdown("""
-### Insights
+### Recommended Strategy
 
-• Consumers first become aware of luxury brands  
+Focus on emotional storytelling and brand heritage.
 
-• Aspirational perception develops through marketing  
+• Emphasize craftsmanship and legacy  
+• Develop experiential retail environments  
+• Build emotional brand communities
+""")
 
-• Emotional attachment drives purchase intention
+    elif avg_celebrity > avg_emotion:
+
+        st.markdown("""
+### Recommended Strategy
+
+Leverage celebrity and influencer partnerships.
+
+• Collaborate with global cultural icons  
+• Use social media storytelling  
+• Increase aspirational branding
+""")
+
+    else:
+
+        st.markdown("""
+### Recommended Strategy
+
+Use scarcity and exclusivity.
+
+• Launch limited editions  
+• Introduce exclusive membership experiences  
+• Maintain controlled supply
 """)
 
 # ------------------------------------------------
@@ -315,69 +288,18 @@ if demo_file:
 """)
 
 # ------------------------------------------------
-# BRAND POSITIONING MAP
-# ------------------------------------------------
-
-st.header("Luxury Brand Positioning Map")
-
-brands = pd.DataFrame({
-
-"Brand":["Louis Vuitton","Hermès","Gucci","Rolex","Chanel"],
-
-"Emotion":[9,9,8,7,8],
-
-"Exclusivity":[8,10,7,9,9],
-
-"Influence":[9,7,8,8,8]
-
-})
-
-fig = px.scatter(
-brands,
-x="Emotion",
-y="Exclusivity",
-size="Influence",
-text="Brand",
-color="Brand"
-)
-
-st.plotly_chart(fig,use_container_width=True)
-
-# ------------------------------------------------
 # PURCHASE SIMULATOR
 # ------------------------------------------------
 
 st.header("Luxury Purchase Simulator")
 
 emotion_input = st.slider("Emotion",1,20,10)
-
 celebrity_input = st.slider("Celebrity Influence",1,20,10)
-
 fomo_input = st.slider("FOMO",1,20,10)
 
 score = -2.120 + 0.757*emotion_input + 0.199*celebrity_input + 0.314*fomo_input
 
 st.success(f"Predicted Purchase Score: {round(score,2)}")
-
-# ------------------------------------------------
-# CASE STUDIES
-# ------------------------------------------------
-
-st.header("Luxury Brand Strategy Case Studies")
-
-st.markdown("""
-**Louis Vuitton — Emotional Storytelling**
-
-Louis Vuitton builds emotional attachment through heritage storytelling and craftsmanship narratives.
-
-**Gucci — Celebrity Influence**
-
-Gucci leverages celebrity collaborations and digital storytelling to create aspirational identity.
-
-**Hermès — Scarcity Strategy**
-
-Hermès maintains exclusivity and limited supply to intensify emotional desire.
-""")
 
 # ------------------------------------------------
 # CONCLUSION
@@ -386,43 +308,6 @@ Hermès maintains exclusivity and limited supply to intensify emotional desire.
 st.header("Project Conclusion")
 
 st.write("""
-Emotion is the strongest driver of luxury purchase intention. 
-Luxury brands should focus on emotional storytelling, aspirational identity creation, and exclusivity strategies to maintain desirability and prestige.
+Emotion is the strongest driver of luxury purchase intention.
+Luxury brands must focus on emotional storytelling, aspirational identity creation and exclusivity strategies.
 """)
-
-# ------------------------------------------------
-# PPT GENERATOR
-# ------------------------------------------------
-
-st.header("Generate Presentation")
-
-def generate_ppt():
-
-    prs = Presentation()
-
-    slide = prs.slides.add_slide(prs.slide_layouts[0])
-    slide.shapes.title.text = "Luxury Consumer Research"
-
-    slide = prs.slides.add_slide(prs.slide_layouts[1])
-    slide.shapes.title.text = "Key Findings"
-    slide.placeholders[1].text = """
-Emotion strongly drives luxury purchase intention.
-Celebrity influence increases aspiration.
-FOMO accelerates luxury purchase urgency.
-"""
-
-    prs.save("luxury_report.pptx")
-
-    return "luxury_report.pptx"
-
-if st.button("Generate PPT"):
-
-    file = generate_ppt()
-
-    with open(file,"rb") as f:
-
-        st.download_button(
-            "Download Presentation",
-            f,
-            file_name="luxury_report.pptx"
-        )
