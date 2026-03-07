@@ -7,6 +7,6 @@ scikit-learn
 feedparser
 networkx
 python-pptx
-requests
-openpyxl
 matplotlib
+openpyxl
+requests

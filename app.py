@@ -2,21 +2,17 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import plotly.graph_objects as go
 import statsmodels.api as sm
 from sklearn.cluster import KMeans
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.tree import plot_tree
-import networkx as nx
 import matplotlib.pyplot as plt
-from pptx import Presentation
 import feedparser
 import random
 
 st.set_page_config(layout="wide")
 
 # -------------------------
-# PREMIUM THEME
+# UI THEME
 # -------------------------
 
 st.markdown("""
@@ -27,17 +23,15 @@ background:linear-gradient(135deg,#0f0026,#2c0066,#5e17eb);
 color:white;
 }
 
-.ticker{
-background:#7c3aed;
-padding:10px;
-font-size:18px;
+h1,h2,h3,h4{
+color:white;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # -------------------------
-# LUXURY NEWS RIBBON
+# NEWS RIBBON
 # -------------------------
 
 feeds=[
@@ -49,43 +43,22 @@ news=[]
 
 for f in feeds:
     feed=feedparser.parse(f)
-    for entry in feed.entries[:3]:
+    for entry in feed.entries[:2]:
         news.append(entry.title)
 
-st.markdown(
-f"<div class='ticker'>Luxury Industry News: {' ✦ '.join(news)}</div>",
-unsafe_allow_html=True
-)
+st.markdown(f"### Luxury Industry News: {' | '.join(news)}")
 
 # -------------------------
-# QUOTE RIBBON
+# QUOTE
 # -------------------------
 
 quotes=[
 "Luxury brands sell dreams not products — Bernard Arnault",
 "Luxury is identity not consumption — Kapferer",
-"Exclusivity creates desire — Pinault",
-"Luxury marketing is storytelling"
+"Exclusivity creates desire — Pinault"
 ]
 
 st.markdown(f"### 💎 Luxury Insight: {random.choice(quotes)}")
-
-# -------------------------
-# SIDEBAR LOGOS
-# -------------------------
-
-st.sidebar.title("Luxury Houses")
-
-logos=[
-"https://upload.wikimedia.org/wikipedia/commons/7/7b/Louis_Vuitton_logo_and_wordmark.svg",
-"https://upload.wikimedia.org/wikipedia/commons/5/55/Gucci_Logo.svg",
-"https://upload.wikimedia.org/wikipedia/commons/2/24/Chanel_logo_interlocking_cs.svg",
-"https://upload.wikimedia.org/wikipedia/commons/7/7f/Hermes_logo.svg",
-"https://upload.wikimedia.org/wikipedia/commons/2/20/Rolex_logo.svg"
-]
-
-for logo in logos:
-    st.sidebar.image(logo,width=160)
 
 # -------------------------
 # TITLE
@@ -124,56 +97,63 @@ if file:
 
     model=sm.OLS(purchase,X).fit()
 
-    st.dataframe(model.summary().tables[1])
+    coef=model.summary2().tables[1]
 
-    st.metric("R²",round(model.rsquared,3))
+    col1,col2=st.columns([2,1])
 
-# -------------------------
-# STRUCTURAL EQUATION MODEL
-# -------------------------
+    with col1:
 
-    st.header("Structural Equation Model")
+        st.dataframe(coef)
 
-    path_CF=np.corrcoef(celebrity,fomo)[0,1]
-    path_FE=np.corrcoef(fomo,emotion)[0,1]
-    path_EP=np.corrcoef(emotion,purchase)[0,1]
+    with col2:
 
-    G=nx.DiGraph()
+        st.markdown("""
+### Regression Insights
 
-    G.add_edge("Celebrity","FOMO",weight=path_CF)
-    G.add_edge("FOMO","Emotion",weight=path_FE)
-    G.add_edge("Emotion","Purchase",weight=path_EP)
+• Emotional response is the strongest predictor of purchase intention.
 
-    pos=nx.spring_layout(G)
+• Celebrity endorsement increases aspiration but has smaller direct impact.
 
-    fig=go.Figure()
+• FOMO significantly increases urgency to purchase.
 
-    for edge in G.edges():
-        x0,y0=pos[edge[0]]
-        x1,y1=pos[edge[1]]
-
-        fig.add_trace(go.Scatter(
-            x=[x0,x1],
-            y=[y0,y1],
-            mode="lines"
-        ))
-
-    for node in G.nodes():
-
-        x,y=pos[node]
-
-        fig.add_trace(go.Scatter(
-            x=[x],
-            y=[y],
-            text=node,
-            mode="markers+text",
-            marker=dict(size=30)
-        ))
-
-    st.plotly_chart(fig)
+These findings confirm that **luxury purchasing behaviour is emotionally driven rather than functionally driven**.
+""")
 
 # -------------------------
-# PSYCHOGRAPHIC SEGMENTS
+# DRIVER VISUALIZATION
+# -------------------------
+
+    st.header("Driver Influence")
+
+    impact=[model.params[1],model.params[2],model.params[3]]
+
+    chart_df=pd.DataFrame({
+        "Driver":["Emotion","Celebrity","FOMO"],
+        "Impact":impact
+    })
+
+    col1,col2=st.columns([3,1])
+
+    with col1:
+
+        fig=px.bar(chart_df,x="Driver",y="Impact",color="Driver")
+
+        st.plotly_chart(fig)
+
+    with col2:
+
+        st.markdown("""
+### Interpretation
+
+Emotion drives symbolic consumption.
+
+Celebrity endorsement strengthens brand prestige.
+
+FOMO accelerates purchasing behaviour among millennials.
+""")
+
+# -------------------------
+# SEGMENTATION
 # -------------------------
 
     st.header("Luxury Consumer Segmentation")
@@ -192,142 +172,166 @@ if file:
 
     df["segment_name"]=df["segment"].map(names)
 
-    fig=px.scatter(
-        df,
-        x=df.columns[5],
-        y=df.columns[20],
-        color="segment_name"
-    )
+    col1,col2=st.columns([3,1])
 
-    st.plotly_chart(fig)
+    with col1:
 
-# -------------------------
-# DECISION TREE
-# -------------------------
+        fig=px.scatter(
+            df,
+            x=df.columns[5],
+            y=df.columns[20],
+            color="segment_name"
+        )
 
-    st.header("Explainable AI Decision Tree")
+        st.plotly_chart(fig)
 
-    model_tree=DecisionTreeRegressor(max_depth=3)
+    with col2:
 
-    model_tree.fit(X_seg,purchase)
+        st.markdown("""
+### Segment Insights
 
-    fig,ax=plt.subplots(figsize=(10,6))
+**Status Aspirers**  
+Buy luxury to signal prestige.
 
-    plot_tree(
-        model_tree,
-        feature_names=["Emotion","Celebrity","FOMO"],
-        filled=True
-    )
+**Identity Seekers**  
+Luxury is used for self-expression.
 
-    st.pyplot(fig)
-
-# -------------------------
-# CONSUMER INFLUENCE NETWORK
-# -------------------------
-
-    st.header("Luxury Consumer Influence Network")
-
-    net=nx.Graph()
-
-    net.add_edges_from([
-        ("Emotion","Identity"),
-        ("Celebrity","Aspirational Influence"),
-        ("FOMO","Social Comparison"),
-        ("Identity","Purchase"),
-        ("Aspirational Influence","Purchase")
-    ])
-
-    pos=nx.spring_layout(net)
-
-    nx.draw(net,pos,with_labels=True,node_size=2000)
-
-    st.pyplot()
+**Impulse Prestige Buyers**  
+Driven by celebrity and hype.
+""")
 
 # -------------------------
-# STRATEGY ENGINE
+# AI STRATEGY ADVISOR
 # -------------------------
 
-    st.header("Luxury Strategy Recommendation")
+    st.header("AI Luxury Strategy Advisor")
 
     avg_emotion=np.mean(emotion)
 
     if avg_emotion>15:
-        strategy="Focus on emotional storytelling and heritage branding."
+
+        strategy="""
+Focus on emotional storytelling and heritage marketing.
+
+Luxury brands should emphasize craftsmanship, legacy and identity.
+"""
+
     elif avg_emotion>10:
-        strategy="Increase celebrity endorsements and aspirational marketing."
+
+        strategy="""
+Celebrity driven campaigns should be used.
+
+Aspirational marketing and influencer partnerships will increase engagement.
+"""
+
     else:
-        strategy="Build exclusivity and prestige positioning."
+
+        strategy="""
+Focus on building exclusivity and prestige positioning before scaling advertising.
+"""
 
     st.success(strategy)
 
 # -------------------------
-# MARKET FORECAST
+# CASE STUDY
 # -------------------------
 
-    st.header("Global Luxury Market Forecast")
+    st.header("Luxury Brand Case Studies")
 
-    years=np.arange(2024,2030)
+    st.markdown("""
+### Louis Vuitton
 
-    growth=0.08
+Louis Vuitton focuses heavily on emotional storytelling and heritage branding.  
+Campaigns highlight craftsmanship and historical prestige.
 
-    market=[400*(1+growth)**i for i in range(len(years))]
+### Gucci
 
-    forecast=pd.DataFrame({
-        "Year":years,
-        "MarketSize":market
-    })
+Gucci leverages celebrity collaborations and digital storytelling to generate aspiration.
 
-    fig=px.line(forecast,x="Year",y="MarketSize")
+### Hermès
 
-    st.plotly_chart(fig)
-
-# -------------------------
-# AI RESEARCH GENERATOR
-# -------------------------
-
-    st.header("Auto Research Discussion")
-
-    st.markdown(f"""
-
-The regression results indicate that emotional response significantly predicts luxury purchase intention.
-
-Emotion coefficient: **{round(model.params[1],3)}**
-
-This finding aligns with luxury strategy theory suggesting consumers purchase luxury primarily for symbolic meaning and emotional resonance rather than functional attributes.
-
-Celebrity influence increases aspirational appeal but is not the dominant predictor of purchasing behaviour.
-
+Hermès maintains scarcity to preserve exclusivity and symbolic value.
 """)
 
 # -------------------------
-# PPT REPORT
+# SYNOPSIS GENERATOR
 # -------------------------
 
-    st.header("Download Research Report")
+    st.header("AI Research Synopsis Generator")
 
-    def generate_ppt():
+    synopsis=f"""
+PRESTIGE INSTITUTE OF MANAGEMENT AND RESEARCH, INDORE
 
-        prs=Presentation()
+MAJOR RESEARCH PROJECT
 
-        slide=prs.slides.add_slide(prs.slide_layouts[0])
-        slide.shapes.title.text="Luxury Consumer Intelligence"
+Effect of Emotions on the Purchase Intension of Luxury Products
 
-        slide=prs.slides.add_slide(prs.slide_layouts[1])
-        slide.shapes.title.text="Regression Results"
-        slide.placeholders[1].text=str(model.summary())
+INTRODUCTION
 
-        prs.save("luxury_report.pptx")
+Luxury products have evolved from mere status symbols to powerful mediums of identity expression. 
+Millennials increasingly purchase luxury goods for emotional gratification rather than functional benefits.
 
-        return "luxury_report.pptx"
+RATIONALE
 
-    if st.button("Generate PPT"):
+The rapid growth of luxury consumption among millennials suggests that emotional drivers significantly influence purchase behaviour.
 
-        file=generate_ppt()
+OBJECTIVES
 
-        with open(file,"rb") as f:
+1. To explore factors influencing purchase intention of luxury products.
+2. To analyze the effect of emotions on purchase intention.
 
-            st.download_button(
-                "Download PowerPoint",
-                f,
-                file_name="luxury_report.pptx"
-            )
+METHODOLOGY
+
+A structured questionnaire using Likert scale was used for primary data collection.
+Multiple Linear Regression was applied to evaluate relationships between variables.
+
+RESULTS
+
+Regression equation:
+
+PI = -2.120 + 0.757 ER + 0.199 CI + 0.314 FOMO
+
+The coefficient for Emotional Response indicates a strong positive effect on purchase intention.
+
+DISCUSSION
+
+The findings confirm that luxury consumption is largely driven by emotional motivations rather than functional needs.
+
+Consumers derive symbolic value, social recognition and psychological satisfaction from luxury purchases.
+
+CONCLUSION
+
+Emotions significantly influence luxury purchase intention. 
+Luxury brands should focus on emotional storytelling and aspirational branding to strengthen consumer engagement.
+
+"""
+
+    st.text_area("Generated Synopsis",synopsis,height=500)
+
+# -------------------------
+# DEMOGRAPHIC DATASET
+# -------------------------
+
+st.header("Demographic Dataset Analysis")
+
+demo=st.file_uploader("Upload Demographic Dataset")
+
+if demo:
+
+    demo_df=pd.read_excel(demo)
+
+    col1,col2=st.columns([3,1])
+
+    with col1:
+
+        fig=px.histogram(demo_df,x="Age")
+
+        st.plotly_chart(fig)
+
+    with col2:
+
+        st.markdown("""
+### Insight
+
+Luxury consumption is highest among young professionals and high income individuals.
+""")
