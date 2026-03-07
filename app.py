@@ -2,139 +2,106 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
+import statsmodels.api as sm
 from sklearn.cluster import KMeans
-import requests
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.tree import plot_tree
+import networkx as nx
 import feedparser
 import random
+from pptx import Presentation
+import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="HayaGriva Luxury Intelligence", layout="wide")
+st.set_page_config(layout="wide")
 
 # -----------------------------
-# PREMIUM PURPLE THEME
+# PREMIUM THEME
 # -----------------------------
 
 st.markdown("""
 <style>
+
 .stApp{
-background: linear-gradient(135deg,#0f0026,#2c0066,#5e17eb);
+background:linear-gradient(135deg,#0f0026,#2c0066,#5e17eb);
 color:white;
 }
 
 .ticker{
-width:100%;
-overflow:hidden;
-white-space:nowrap;
-background:#6d28d9;
+background:#7c3aed;
 padding:10px;
-font-size:16px;
-}
-
-.ticker span{
-display:inline-block;
-padding-left:100%;
-animation:scroll 25s linear infinite;
-}
-
-@keyframes scroll{
-0% {transform:translateX(0);}
-100% {transform:translateX(-100%);}
+font-size:18px;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # -----------------------------
-# LIVE LUXURY NEWS TICKER
+# LUXURY NEWS RIBBON
 # -----------------------------
 
-def get_luxury_news():
+feeds=[
+"https://www.businessoffashion.com/feed/",
+"https://rss.nytimes.com/services/xml/rss/nyt/FashionandStyle.xml"
+]
 
-    feeds=[
-    "https://www.businessoffashion.com/feed/",
-    "https://www.voguebusiness.com/rss",
-    "https://rss.nytimes.com/services/xml/rss/nyt/FashionandStyle.xml"
-    ]
+news=[]
 
-    headlines=[]
+for f in feeds:
+    feed=feedparser.parse(f)
+    for entry in feed.entries[:3]:
+        news.append(entry.title)
 
-    for url in feeds:
-        feed=feedparser.parse(url)
-
-        for entry in feed.entries[:3]:
-            headlines.append(entry.title)
-
-    return headlines
-
-news=get_luxury_news()
-
-ticker_text="  ✦  ".join(news)
-
-st.markdown(f"""
-<div class="ticker">
-<span>💎 Luxury Industry News: {ticker_text}</span>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(
+f"<div class='ticker'>Luxury Industry News: {' ✦ '.join(news)}</div>",
+unsafe_allow_html=True
+)
 
 # -----------------------------
-# CEO QUOTE RIBBON
+# QUOTE RIBBON
 # -----------------------------
 
 quotes=[
-"Luxury must be comfortable otherwise it is not luxury — Coco Chanel",
 "Luxury brands sell dreams not products — Bernard Arnault",
-"Scarcity is the essence of luxury — Hermès Strategy",
-"Exclusivity creates desire — François-Henri Pinault",
-"Luxury marketing is storytelling at the highest level — LVMH Strategy"
+"Luxury is identity not consumption — Kapferer",
+"Exclusivity creates desire — Pinault",
+"Luxury marketing is storytelling"
 ]
 
-st.markdown(f"""
-<div style='background:#9333ea;padding:8px;border-radius:8px;text-align:center'>
-💡 Executive Insight: {random.choice(quotes)}
-</div>
-""", unsafe_allow_html=True)
+st.markdown(f"### 💎 Luxury Insight: {random.choice(quotes)}")
 
 # -----------------------------
 # SIDEBAR LOGOS
 # -----------------------------
 
-st.sidebar.image(
+st.sidebar.title("Luxury Houses")
+
+logos=[
 "https://upload.wikimedia.org/wikipedia/commons/7/7b/Louis_Vuitton_logo_and_wordmark.svg",
-width=150
-)
-
-st.sidebar.image(
 "https://upload.wikimedia.org/wikipedia/commons/5/55/Gucci_Logo.svg",
-width=150
-)
-
-st.sidebar.image(
 "https://upload.wikimedia.org/wikipedia/commons/2/24/Chanel_logo_interlocking_cs.svg",
-width=150
-)
-
-st.sidebar.image(
 "https://upload.wikimedia.org/wikipedia/commons/7/7f/Hermes_logo.svg",
-width=150
-)
+"https://upload.wikimedia.org/wikipedia/commons/2/20/Rolex_logo.svg"
+]
 
-st.sidebar.image(
-"https://upload.wikimedia.org/wikipedia/commons/2/20/Rolex_logo.svg",
-width=150
-)
+for logo in logos:
+    st.sidebar.image(logo,width=160)
+
+# -----------------------------
+# TITLE
+# -----------------------------
 
 st.title("HayaGriva Luxury Consumer Intelligence Platform")
-
-st.write("AI-Assisted Behavioral Analytics for Luxury Purchase Intention")
 
 # -----------------------------
 # DATA UPLOAD
 # -----------------------------
 
-uploaded_file=st.file_uploader("Upload Dataset", type=["xlsx","csv"])
+file=st.file_uploader("Upload Luxury Emotion Dataset")
 
-if uploaded_file:
+if file:
 
-    df=pd.read_excel(uploaded_file)
+    df=pd.read_excel(file)
 
     emotion=df.iloc[:,5]
     celebrity=df.iloc[:,10]
@@ -142,142 +109,202 @@ if uploaded_file:
     purchase=df.iloc[:,20]
 
 # -----------------------------
-# CPM MODEL
+# MULTIPLE REGRESSION
 # -----------------------------
 
-    def regression(x,y):
-        return np.polyfit(x,y,1)[0]
+    st.header("Multiple Linear Regression (SPSS Equivalent)")
 
-    path_CF=regression(celebrity,fomo)
-    path_FE=regression(fomo,emotion)
-    path_EP=regression(emotion,purchase)
-    path_CE=regression(celebrity,emotion)
-
-    st.header("Behavioral Driver Metrics")
-
-    c1,c2,c3,c4=st.columns(4)
-
-    c1.metric("Celebrity → FOMO",round(path_CF,3))
-    c2.metric("FOMO → Emotion",round(path_FE,3))
-    c3.metric("Emotion → Purchase",round(path_EP,3))
-    c4.metric("Celebrity → Emotion",round(path_CE,3))
-
-# -----------------------------
-# DRIVER BAR CHART
-# -----------------------------
-
-    st.header("Driver Influence Comparison")
-
-    colA,colB=st.columns([2,1])
-
-    driver_df=pd.DataFrame({
-        "Driver":["Celebrity","FOMO","Emotion"],
-        "Impact":[path_CF,path_FE,path_EP]
+    X=pd.DataFrame({
+        "Emotion":emotion,
+        "Celebrity":celebrity,
+        "FOMO":fomo
     })
 
-    with colA:
+    X=sm.add_constant(X)
 
-        fig=px.bar(
-        driver_df,
-        x="Driver",
-        y="Impact",
-        color="Driver",
-        color_discrete_sequence=["#c084fc","#9333ea","#6d28d9"]
-        )
+    model=sm.OLS(purchase,X).fit()
 
-        st.plotly_chart(fig,use_container_width=True)
+    st.dataframe(model.summary().tables[1])
 
-    with colB:
-
-        st.markdown("""
-### Chart Explanation
-
-• Emotional engagement dominates purchase intention  
-• Celebrity influence amplifies aspiration  
-• FOMO creates urgency but weaker conversion impact  
-• Luxury purchasing is emotion-centric
-""")
+    st.metric("R²",round(model.rsquared,3))
 
 # -----------------------------
-# CONSUMER SEGMENTATION
+# SEM MODEL
 # -----------------------------
 
-    st.header("Luxury Consumer Archetypes")
+    st.header("Structural Equation Model")
 
-    X=df[[df.columns[5],df.columns[10],df.columns[15]]]
+    path_CF=np.corrcoef(celebrity,fomo)[0,1]
+    path_FE=np.corrcoef(fomo,emotion)[0,1]
+    path_EP=np.corrcoef(emotion,purchase)[0,1]
+
+    G=nx.DiGraph()
+
+    G.add_edge("Celebrity","FOMO")
+    G.add_edge("FOMO","Emotion")
+    G.add_edge("Emotion","Purchase")
+
+    pos=nx.spring_layout(G)
+
+    edge_x=[]
+    edge_y=[]
+
+    for edge in G.edges():
+        x0,y0=pos[edge[0]]
+        x1,y1=pos[edge[1]]
+        edge_x.extend([x0,x1,None])
+        edge_y.extend([y0,y1,None])
+
+    fig=go.Figure()
+
+    fig.add_trace(go.Scatter(x=edge_x,y=edge_y,mode='lines'))
+
+    node_x=[]
+    node_y=[]
+
+    for node in G.nodes():
+        x,y=pos[node]
+        node_x.append(x)
+        node_y.append(y)
+
+    fig.add_trace(go.Scatter(
+        x=node_x,
+        y=node_y,
+        mode='markers+text',
+        text=list(G.nodes()),
+        textposition="bottom center",
+        marker=dict(size=30)
+    ))
+
+    st.plotly_chart(fig)
+
+# -----------------------------
+# PSYCHOGRAPHIC SEGMENTATION
+# -----------------------------
+
+    st.header("Luxury Consumer Segments")
+
+    X_seg=df[[df.columns[5],df.columns[10],df.columns[15]]]
 
     kmeans=KMeans(n_clusters=3)
-    df["segment"]=kmeans.fit_predict(X)
 
-    segment_names={
-    0:"Emotional Connoisseurs",
-    1:"Prestige Status Seekers",
-    2:"Social Momentum Buyers"
+    df["segment"]=kmeans.fit_predict(X_seg)
+
+    names={
+    0:"Status Aspirers",
+    1:"Identity Seekers",
+    2:"Impulse Prestige Buyers"
     }
 
-    df["segment_name"]=df["segment"].map(segment_names)
+    df["segment_name"]=df["segment"].map(names)
 
-    fig2=px.scatter(
-    df,
-    x=df.columns[5],
-    y=df.columns[20],
-    color="segment_name"
+    fig=px.scatter(
+        df,
+        x=df.columns[5],
+        y=df.columns[20],
+        color="segment_name"
     )
 
-    st.plotly_chart(fig2,use_container_width=True)
+    st.plotly_chart(fig)
 
 # -----------------------------
-# PURCHASE SIMULATOR
+# DECISION TREE (Explainable AI)
 # -----------------------------
 
-    st.header("Luxury Purchase Simulator")
+    st.header("Explainable AI Decision Tree")
 
-    colA,colB,colC=st.columns(3)
+    model_tree=DecisionTreeRegressor(max_depth=3)
 
-    emotion_input=colA.slider("Emotion",1,20,10)
-    celebrity_input=colB.slider("Celebrity",1,20,10)
-    fomo_input=colC.slider("FOMO",1,20,10)
+    model_tree.fit(X_seg,purchase)
 
-    score=0.63*emotion_input+0.16*celebrity_input+0.26*fomo_input
+    fig,ax=plt.subplots(figsize=(10,6))
 
-    st.success(f"Predicted Purchase Intention Score: {round(score,2)}")
+    plot_tree(model_tree,
+    feature_names=["Emotion","Celebrity","FOMO"],
+    filled=True)
 
-# -----------------------------
-# CASE STUDIES
-# -----------------------------
-
-    st.header("Luxury Brand Case Studies (2026)")
-
-    st.subheader("Louis Vuitton")
-
-    st.image("https://upload.wikimedia.org/wikipedia/commons/8/8e/LVMH_headquarters_Paris.jpg")
-
-    st.write("Louis Vuitton focuses on immersive retail and experiential storytelling.")
-
-    st.subheader("Gucci")
-
-    st.image("https://upload.wikimedia.org/wikipedia/commons/0/0b/Gucci_HQ_Florence.jpg")
-
-    st.write("Gucci leverages AI personalization and digital engagement.")
-
-    st.subheader("Hermès")
-
-    st.image("https://upload.wikimedia.org/wikipedia/commons/6/6c/Hermes_headquarters_Paris.jpg")
-
-    st.write("Hermès maintains prestige through scarcity and craftsmanship.")
-
-# -----------------------------
-# STRATEGIC CONCLUSION
-# -----------------------------
-
-    st.header("Strategic Conclusions")
+    st.pyplot(fig)
 
     st.markdown("""
-• Emotional storytelling drives luxury purchase intention.
-
-• Celebrity endorsements generate attention but emotional resonance converts.
-
-• Luxury brands must maintain exclusivity while strengthening consumer identity connection.
-
-• AI consumer intelligence platforms like HayaGriva enable strategic luxury marketing decisions.
+This decision tree shows which psychological factors most strongly drive luxury purchase decisions.
 """)
+
+# -----------------------------
+# STRATEGY RECOMMENDATION ENGINE
+# -----------------------------
+
+    st.header("Luxury Strategy Recommendation Engine")
+
+    avg_emotion=np.mean(emotion)
+
+    if avg_emotion>15:
+
+        strategy="Focus on emotional storytelling and brand heritage campaigns."
+
+    elif avg_emotion>10:
+
+        strategy="Increase celebrity endorsements and aspirational advertising."
+
+    else:
+
+        strategy="Build brand prestige and exclusivity before expanding marketing."
+
+    st.success(strategy)
+
+# -----------------------------
+# GLOBAL LUXURY MARKET PREDICTION
+# -----------------------------
+
+    st.header("Global Luxury Market Prediction")
+
+    years=np.arange(2024,2030)
+
+    growth=0.08
+
+    market=[400*(1+growth)**i for i in range(len(years))]
+
+    forecast=pd.DataFrame({
+        "Year":years,
+        "MarketSize":market
+    })
+
+    fig=px.line(forecast,x="Year",y="MarketSize")
+
+    st.plotly_chart(fig)
+
+    st.markdown("""
+Global luxury market projected to grow strongly driven by emerging markets and digital luxury commerce.
+""")
+
+# -----------------------------
+# PPT REPORT
+# -----------------------------
+
+    st.header("Download Research Report")
+
+    def generate_ppt():
+
+        prs=Presentation()
+
+        slide=prs.slides.add_slide(prs.slide_layouts[0])
+        slide.shapes.title.text="HayaGriva Luxury Analytics"
+
+        slide=prs.slides.add_slide(prs.slide_layouts[1])
+        slide.shapes.title.text="Regression Results"
+        slide.placeholders[1].text=str(model.summary())
+
+        prs.save("luxury_report.pptx")
+
+        return "luxury_report.pptx"
+
+    if st.button("Generate PowerPoint Report"):
+
+        file=generate_ppt()
+
+        with open(file,"rb") as f:
+
+            st.download_button(
+                "Download PPT",
+                f,
+                file_name="luxury_report.pptx"
+            )
