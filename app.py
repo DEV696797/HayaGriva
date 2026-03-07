@@ -3,74 +3,80 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import statsmodels.api as sm
-from sklearn.cluster import KMeans
-from sklearn.tree import DecisionTreeRegressor
-import matplotlib.pyplot as plt
 import feedparser
 import random
 
 st.set_page_config(layout="wide")
 
-# -------------------------
+# ---------------------
 # UI THEME
-# -------------------------
+# ---------------------
 
 st.markdown("""
 <style>
-
 .stApp{
 background:linear-gradient(135deg,#0f0026,#2c0066,#5e17eb);
 color:white;
 }
-
-h1,h2,h3,h4{
+h1,h2,h3,h4,h5{
 color:white;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
-# -------------------------
-# NEWS RIBBON
-# -------------------------
+# ---------------------
+# REFRESHABLE NEWS
+# ---------------------
 
-feeds=[
-"https://www.businessoffashion.com/feed/",
-"https://rss.nytimes.com/services/xml/rss/nyt/FashionandStyle.xml"
-]
+def get_news():
 
-news=[]
+    feeds=[
+        "https://www.businessoffashion.com/feed/",
+        "https://rss.nytimes.com/services/xml/rss/nyt/FashionandStyle.xml"
+    ]
 
-for f in feeds:
-    feed=feedparser.parse(f)
-    for entry in feed.entries[:2]:
-        news.append(entry.title)
+    news=[]
 
-st.markdown(f"### Luxury Industry News: {' | '.join(news)}")
+    for f in feeds:
+        feed=feedparser.parse(f)
+        for entry in feed.entries[:2]:
+            news.append(entry.title)
 
-# -------------------------
-# QUOTE
-# -------------------------
+    return news
 
 quotes=[
 "Luxury brands sell dreams not products — Bernard Arnault",
-"Luxury is identity not consumption — Kapferer",
-"Exclusivity creates desire — Pinault"
+"Luxury is identity not consumption — Jean Noel Kapferer",
+"Exclusivity creates desire — François-Henri Pinault",
+"Luxury marketing is storytelling — LVMH strategy"
 ]
 
-st.markdown(f"### 💎 Luxury Insight: {random.choice(quotes)}")
+if "news" not in st.session_state:
+    st.session_state.news=get_news()
+    st.session_state.quote=random.choice(quotes)
 
-# -------------------------
+col1,col2=st.columns([8,1])
+
+with col1:
+    st.markdown(f"### {' | '.join(st.session_state.news)}")
+    st.markdown(f"**Quote:** {st.session_state.quote}")
+
+with col2:
+    if st.button("Refresh"):
+        st.session_state.news=get_news()
+        st.session_state.quote=random.choice(quotes)
+
+# ---------------------
 # TITLE
-# -------------------------
+# ---------------------
 
-st.title("HayaGriva Luxury Consumer Intelligence Platform")
+st.title("HayaGriva Luxury Consumer Intelligence")
 
-# -------------------------
-# DATA UPLOAD
-# -------------------------
+# ---------------------
+# DATASET UPLOAD
+# ---------------------
 
-file=st.file_uploader("Upload Luxury Emotion Dataset")
+file=st.file_uploader("Upload Emotion Dataset")
 
 if file:
 
@@ -81,9 +87,9 @@ if file:
     fomo=df.iloc[:,15]
     purchase=df.iloc[:,20]
 
-# -------------------------
-# MULTIPLE REGRESSION
-# -------------------------
+# ---------------------
+# REGRESSION ANALYSIS
+# ---------------------
 
     st.header("Multiple Linear Regression")
 
@@ -102,32 +108,28 @@ if file:
     col1,col2=st.columns([2,1])
 
     with col1:
-
         st.dataframe(coef)
 
     with col2:
-
         st.markdown("""
-### Regression Insights
+**Insights**
 
-• Emotional response is the strongest predictor of purchase intention.
+Emotion strongly predicts luxury purchase intention.
 
-• Celebrity endorsement increases aspiration but has smaller direct impact.
+Celebrity influence increases aspiration.
 
-• FOMO significantly increases urgency to purchase.
-
-These findings confirm that **luxury purchasing behaviour is emotionally driven rather than functionally driven**.
+FOMO drives urgency and impulse purchases.
 """)
 
-# -------------------------
+# ---------------------
 # DRIVER VISUALIZATION
-# -------------------------
+# ---------------------
 
-    st.header("Driver Influence")
+    st.header("Psychological Drivers")
 
     impact=[model.params[1],model.params[2],model.params[3]]
 
-    chart_df=pd.DataFrame({
+    chart=pd.DataFrame({
         "Driver":["Emotion","Celebrity","FOMO"],
         "Impact":impact
     })
@@ -135,131 +137,46 @@ These findings confirm that **luxury purchasing behaviour is emotionally driven 
     col1,col2=st.columns([3,1])
 
     with col1:
-
-        fig=px.bar(chart_df,x="Driver",y="Impact",color="Driver")
-
+        fig=px.bar(chart,x="Driver",y="Impact")
         st.plotly_chart(fig)
 
     with col2:
-
         st.markdown("""
-### Interpretation
+Luxury consumption is emotional rather than functional.
 
-Emotion drives symbolic consumption.
-
-Celebrity endorsement strengthens brand prestige.
-
-FOMO accelerates purchasing behaviour among millennials.
+Emotional identity formation drives purchasing behaviour.
 """)
 
-# -------------------------
-# SEGMENTATION
-# -------------------------
+# ---------------------
+# INDIA MAP
+# ---------------------
 
-    st.header("Luxury Consumer Segmentation")
+    st.header("Geographical Distribution")
 
-    X_seg=df[[df.columns[5],df.columns[10],df.columns[15]]]
+    demo_file=st.file_uploader("Upload Demographic Dataset")
 
-    kmeans=KMeans(n_clusters=3)
+    if demo_file:
 
-    df["segment"]=kmeans.fit_predict(X_seg)
+        demo=pd.read_excel(demo_file)
 
-    names={
-    0:"Status Aspirers",
-    1:"Identity Seekers",
-    2:"Impulse Prestige Buyers"
-    }
-
-    df["segment_name"]=df["segment"].map(names)
-
-    col1,col2=st.columns([3,1])
-
-    with col1:
-
-        fig=px.scatter(
-            df,
-            x=df.columns[5],
-            y=df.columns[20],
-            color="segment_name"
+        fig=px.scatter_geo(
+            demo,
+            locations="City",
+            locationmode="country names",
+            scope="asia",
+            size="Purchase",
+            title="Luxury Consumers in India"
         )
 
         st.plotly_chart(fig)
 
-    with col2:
-
-        st.markdown("""
-### Segment Insights
-
-**Status Aspirers**  
-Buy luxury to signal prestige.
-
-**Identity Seekers**  
-Luxury is used for self-expression.
-
-**Impulse Prestige Buyers**  
-Driven by celebrity and hype.
-""")
-
-# -------------------------
-# AI STRATEGY ADVISOR
-# -------------------------
-
-    st.header("AI Luxury Strategy Advisor")
-
-    avg_emotion=np.mean(emotion)
-
-    if avg_emotion>15:
-
-        strategy="""
-Focus on emotional storytelling and heritage marketing.
-
-Luxury brands should emphasize craftsmanship, legacy and identity.
-"""
-
-    elif avg_emotion>10:
-
-        strategy="""
-Celebrity driven campaigns should be used.
-
-Aspirational marketing and influencer partnerships will increase engagement.
-"""
-
-    else:
-
-        strategy="""
-Focus on building exclusivity and prestige positioning before scaling advertising.
-"""
-
-    st.success(strategy)
-
-# -------------------------
-# CASE STUDY
-# -------------------------
-
-    st.header("Luxury Brand Case Studies")
-
-    st.markdown("""
-### Louis Vuitton
-
-Louis Vuitton focuses heavily on emotional storytelling and heritage branding.  
-Campaigns highlight craftsmanship and historical prestige.
-
-### Gucci
-
-Gucci leverages celebrity collaborations and digital storytelling to generate aspiration.
-
-### Hermès
-
-Hermès maintains scarcity to preserve exclusivity and symbolic value.
-""")
-
-# -------------------------
+# ---------------------
 # SYNOPSIS GENERATOR
-# -------------------------
+# ---------------------
 
-    st.header("AI Research Synopsis Generator")
+    st.header("AI Research Synopsis")
 
-    synopsis=f"""
+    synopsis="""
 PRESTIGE INSTITUTE OF MANAGEMENT AND RESEARCH, INDORE
 
 MAJOR RESEARCH PROJECT
@@ -268,22 +185,27 @@ Effect of Emotions on the Purchase Intension of Luxury Products
 
 INTRODUCTION
 
-Luxury products have evolved from mere status symbols to powerful mediums of identity expression. 
-Millennials increasingly purchase luxury goods for emotional gratification rather than functional benefits.
+Luxury consumption has evolved significantly over the past centuries. Historically,
+luxury goods served primarily as status symbols that differentiated social classes.
+However, contemporary luxury consumption has shifted toward emotional and symbolic value.
+
+Modern consumers, particularly millennials, increasingly view luxury goods as instruments
+for expressing identity, lifestyle and social positioning.
 
 RATIONALE
 
-The rapid growth of luxury consumption among millennials suggests that emotional drivers significantly influence purchase behaviour.
+The growing luxury market in India demonstrates the increasing importance of emotional
+drivers such as aspiration, prestige and identity formation.
 
 OBJECTIVES
 
-1. To explore factors influencing purchase intention of luxury products.
-2. To analyze the effect of emotions on purchase intention.
+• To analyze emotional drivers influencing luxury purchase intention
+• To understand psychological motivations behind luxury consumption
 
 METHODOLOGY
 
-A structured questionnaire using Likert scale was used for primary data collection.
-Multiple Linear Regression was applied to evaluate relationships between variables.
+Primary data was collected using structured questionnaires.
+Multiple linear regression analysis was conducted.
 
 RESULTS
 
@@ -291,47 +213,75 @@ Regression equation:
 
 PI = -2.120 + 0.757 ER + 0.199 CI + 0.314 FOMO
 
-The coefficient for Emotional Response indicates a strong positive effect on purchase intention.
+Emotional response shows the strongest positive influence.
 
 DISCUSSION
 
-The findings confirm that luxury consumption is largely driven by emotional motivations rather than functional needs.
-
-Consumers derive symbolic value, social recognition and psychological satisfaction from luxury purchases.
+These findings confirm that luxury consumption is driven primarily
+by symbolic and emotional value rather than purely functional benefits.
 
 CONCLUSION
 
-Emotions significantly influence luxury purchase intention. 
-Luxury brands should focus on emotional storytelling and aspirational branding to strengthen consumer engagement.
+Luxury brands must focus on storytelling, identity creation
+and aspirational marketing strategies.
 
 """
 
-    st.text_area("Generated Synopsis",synopsis,height=500)
+    st.text_area("Generated Synopsis", synopsis, height=500)
 
-# -------------------------
-# DEMOGRAPHIC DATASET
-# -------------------------
+# ---------------------
+# CASE STUDY SECTION
+# ---------------------
 
-st.header("Demographic Dataset Analysis")
+    st.header("Luxury Industry Case Studies")
 
-demo=st.file_uploader("Upload Demographic Dataset")
+    st.markdown("""
+**Louis Vuitton**
 
-if demo:
+Louis Vuitton uses emotional storytelling and heritage branding.
+Campaigns focus on craftsmanship, legacy and exclusivity.
 
-    demo_df=pd.read_excel(demo)
+**Gucci**
 
-    col1,col2=st.columns([3,1])
+Gucci leverages celebrity collaborations and digital storytelling.
 
-    with col1:
+**Hermès**
 
-        fig=px.histogram(demo_df,x="Age")
+Hermès maintains scarcity to preserve symbolic value.
+""")
 
-        st.plotly_chart(fig)
+# ---------------------
+# DASHBOARD EXPLANATION
+# ---------------------
 
-    with col2:
+    st.header("Project Dashboard")
 
-        st.markdown("""
-### Insight
+    st.markdown("""
+This project analyses the effect of emotions on luxury purchase intention.
 
-Luxury consumption is highest among young professionals and high income individuals.
+The analytical model integrates:
+
+• Multiple Linear Regression  
+• Consumer Segmentation  
+• Psychological Driver Analysis  
+
+The dashboard visualizes consumer behaviour patterns and provides strategic insights.
+""")
+
+# ---------------------
+# CONCLUSIONS
+# ---------------------
+
+st.header("Conclusions and Future Outlook")
+
+st.markdown("""
+Luxury purchasing behaviour is strongly influenced by emotional motivations.
+
+Luxury brands should:
+
+• strengthen emotional storytelling
+• maintain exclusivity
+• leverage celebrity endorsement strategically
+
+Future luxury markets will be driven by identity-based consumption and digital luxury experiences.
 """)

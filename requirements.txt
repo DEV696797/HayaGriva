@@ -6,7 +6,7 @@ statsmodels
 scikit-learn
 feedparser
 networkx
-python-pptx
 matplotlib
 openpyxl
 requests
+python-pptx
