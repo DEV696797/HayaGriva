@@ -6,39 +6,49 @@ from sklearn.cluster import KMeans
 import networkx as nx
 import numpy as np
 
-# PAGE CONFIG
-st.set_page_config(page_title="HayaGriva Analytics", layout="wide")
+st.set_page_config(page_title="HayaGriva Luxury Analytics", layout="wide")
 
-# CUSTOM PURPLE THEME
+# -------------------------
+# PREMIUM PURPLE UI THEME
+# -------------------------
+
 st.markdown("""
 <style>
-.stApp {
-    background: linear-gradient(135deg,#1a0033,#3a0066,#5e17eb);
-    color: white;
-}
 
-h1,h2,h3 {
+.stApp {
+background: linear-gradient(135deg,#0f0026,#2b0057,#5e17eb);
 color:white;
 }
 
-.block-container {
+h1,h2,h3,h4{
+color:white;
+}
+
+.metric-box{
+background:rgba(255,255,255,0.1);
+padding:15px;
+border-radius:10px;
+}
+
+.block-container{
 padding-top:2rem;
 }
 
-.metric-box {
-background:rgba(255,255,255,0.1);
-padding:20px;
-border-radius:10px;
-}
 </style>
 """, unsafe_allow_html=True)
 
-st.title("HayaGriva Luxury Consumer Intelligence")
+st.title("HayaGriva Luxury Consumer Intelligence Platform")
+
+st.write("Advanced behavioral analytics for luxury purchase intention")
 
 uploaded_file = st.file_uploader(
 "Upload Luxury Consumer Dataset",
 type=["xlsx","csv"]
 )
+
+# -------------------------
+# MAIN ANALYSIS
+# -------------------------
 
 if uploaded_file:
 
@@ -49,10 +59,14 @@ if uploaded_file:
     fomo = df.iloc[:,15]
     purchase = df.iloc[:,20]
 
-    st.subheader("Dataset Preview")
+    st.subheader("Dataset Overview")
+
     st.dataframe(df.head())
 
-    # REGRESSION FUNCTION
+# -------------------------
+# CPM CAUSAL MODEL
+# -------------------------
+
     def regression(x,y):
         x = np.array(x)
         y = np.array(y)
@@ -73,7 +87,10 @@ if uploaded_file:
     col3.metric("Emotion → Purchase", round(path_EP,3))
     col4.metric("Celebrity → Emotion", round(path_CE,3))
 
-    # CORRELATION HEATMAP
+# -------------------------
+# HEATMAP
+# -------------------------
+
     st.subheader("Psychological Influence Heatmap")
 
     corr = df.iloc[:,[5,10,15,20]].corr()
@@ -86,8 +103,11 @@ if uploaded_file:
 
     st.plotly_chart(fig_heat,use_container_width=True)
 
-    # CAUSAL NETWORK GRAPH
-    st.subheader("Luxury Consumer Causal Network")
+# -------------------------
+# CAUSAL NETWORK
+# -------------------------
+
+    st.subheader("Luxury Decision Network")
 
     G = nx.DiGraph()
 
@@ -145,7 +165,10 @@ if uploaded_file:
 
     st.plotly_chart(fig_net,use_container_width=True)
 
-    # SEGMENTATION
+# -------------------------
+# CONSUMER SEGMENTATION
+# -------------------------
+
     st.subheader("Luxury Consumer Segmentation")
 
     X = df[[df.columns[5],df.columns[10],df.columns[15]]]
@@ -163,8 +186,58 @@ if uploaded_file:
 
     st.plotly_chart(fig_seg,use_container_width=True)
 
-    # PURCHASE SIMULATOR
-    st.subheader("Luxury Purchase Simulator")
+# -------------------------
+# AI PERSONA GENERATOR
+# -------------------------
+
+    st.subheader("AI Luxury Consumer Personas")
+
+    persona_summary = df.groupby("segment")[[df.columns[5],df.columns[10],df.columns[15],df.columns[20]]].mean()
+
+    insights = []
+
+    for i,row in persona_summary.iterrows():
+
+        emotion_score = row[df.columns[5]]
+        celeb_score = row[df.columns[10]]
+        fomo_score = row[df.columns[15]]
+
+        if emotion_score > celeb_score and emotion_score > fomo_score:
+
+            persona="Emotion-Driven Buyer"
+            desc="Purchases luxury primarily for emotional gratification."
+
+        elif celeb_score > emotion_score:
+
+            persona="Status-Seeking Consumer"
+            desc="Strongly influenced by prestige and celebrity endorsement."
+
+        else:
+
+            persona="Social Comparison Buyer"
+            desc="Driven by social pressure and FOMO."
+
+        insights.append([i,persona,emotion_score,celeb_score,fomo_score])
+
+        st.markdown(f"""
+### Segment {i}: {persona}
+
+Emotion Score: **{emotion_score:.2f}**
+
+Celebrity Influence: **{celeb_score:.2f}**
+
+FOMO Level: **{fomo_score:.2f}**
+
+**Strategic Insight**
+
+{desc}
+""")
+
+# -------------------------
+# PURCHASE SIMULATOR
+# -------------------------
+
+    st.subheader("Luxury Purchase Prediction Simulator")
 
     colA,colB,colC = st.columns(3)
 
@@ -180,27 +253,39 @@ if uploaded_file:
 
     st.success(f"Predicted Purchase Intention Score: {round(score,2)}")
 
-    # THEORETICAL INTERPRETATION
-    st.subheader("Theoretical Interpretation")
+# -------------------------
+# THEORETICAL ANALYSIS
+# -------------------------
+
+    st.subheader("Strategic Behavioral Insights")
 
     st.write(f"""
-The causal model suggests that **Emotional Response is the dominant predictor of Luxury Purchase Intention**.
+The causal path analysis reveals that **emotional response is the dominant driver of luxury purchase intention (β = {round(path_EP,3)})**.
 
-Key findings:
+Key strategic implications:
 
-• Emotional influence coefficient: **{round(path_EP,3)}**
+• Emotional engagement plays a stronger role than celebrity endorsement.
 
-• Celebrity influence contributes indirectly through FOMO and emotional engagement.
+• Social comparison (FOMO) acts as a secondary trigger for luxury consumption.
 
-• Luxury purchasing behaviour appears to be **emotion-driven rather than purely status-driven**.
+• Luxury marketing strategies should emphasize **experiential storytelling and emotional resonance**.
 
-Managerial implications:
-
-1. Luxury brands should prioritize **emotional storytelling and experiential marketing**.
-
-2. Celebrity endorsements are more effective when they amplify emotional resonance rather than merely providing visibility.
-
-3. Social comparison effects (FOMO) act as a **secondary psychological trigger**.
-
-Overall, the results support **affective decision-making theory in luxury consumption behaviour**.
+These findings support the **Affective Decision-Making Theory in luxury consumer behaviour**.
 """)
+
+# -------------------------
+# DOWNLOADABLE REPORT
+# -------------------------
+
+    st.subheader("Download Analytics Report")
+
+    report = persona_summary.reset_index()
+
+    csv = report.to_csv(index=False).encode('utf-8')
+
+    st.download_button(
+        label="Download Luxury Consumer Intelligence Report",
+        data=csv,
+        file_name="hayagriva_consumer_report.csv",
+        mime="text/csv"
+    )
