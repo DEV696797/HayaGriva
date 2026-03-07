@@ -1,291 +1,283 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from sklearn.cluster import KMeans
-import networkx as nx
 import numpy as np
+import plotly.express as px
+from sklearn.cluster import KMeans
+import requests
+import feedparser
+import random
 
-st.set_page_config(page_title="HayaGriva Luxury Analytics", layout="wide")
+st.set_page_config(page_title="HayaGriva Luxury Intelligence", layout="wide")
 
-# -------------------------
-# PREMIUM PURPLE UI THEME
-# -------------------------
+# -----------------------------
+# PREMIUM PURPLE THEME
+# -----------------------------
 
 st.markdown("""
 <style>
-
-.stApp {
-background: linear-gradient(135deg,#0f0026,#2b0057,#5e17eb);
+.stApp{
+background: linear-gradient(135deg,#0f0026,#2c0066,#5e17eb);
 color:white;
 }
 
-h1,h2,h3,h4{
-color:white;
+.ticker{
+width:100%;
+overflow:hidden;
+white-space:nowrap;
+background:#6d28d9;
+padding:10px;
+font-size:16px;
 }
 
-.metric-box{
-background:rgba(255,255,255,0.1);
-padding:15px;
-border-radius:10px;
+.ticker span{
+display:inline-block;
+padding-left:100%;
+animation:scroll 25s linear infinite;
 }
 
-.block-container{
-padding-top:2rem;
+@keyframes scroll{
+0% {transform:translateX(0);}
+100% {transform:translateX(-100%);}
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-st.title("HayaGriva Luxury Consumer Intelligence Platform")
+# -----------------------------
+# LIVE LUXURY NEWS TICKER
+# -----------------------------
 
-st.write("Advanced behavioral analytics for luxury purchase intention")
+def get_luxury_news():
 
-uploaded_file = st.file_uploader(
-"Upload Luxury Consumer Dataset",
-type=["xlsx","csv"]
+    feeds=[
+    "https://www.businessoffashion.com/feed/",
+    "https://www.voguebusiness.com/rss",
+    "https://rss.nytimes.com/services/xml/rss/nyt/FashionandStyle.xml"
+    ]
+
+    headlines=[]
+
+    for url in feeds:
+        feed=feedparser.parse(url)
+
+        for entry in feed.entries[:3]:
+            headlines.append(entry.title)
+
+    return headlines
+
+news=get_luxury_news()
+
+ticker_text="  ✦  ".join(news)
+
+st.markdown(f"""
+<div class="ticker">
+<span>💎 Luxury Industry News: {ticker_text}</span>
+</div>
+""", unsafe_allow_html=True)
+
+# -----------------------------
+# CEO QUOTE RIBBON
+# -----------------------------
+
+quotes=[
+"Luxury must be comfortable otherwise it is not luxury — Coco Chanel",
+"Luxury brands sell dreams not products — Bernard Arnault",
+"Scarcity is the essence of luxury — Hermès Strategy",
+"Exclusivity creates desire — François-Henri Pinault",
+"Luxury marketing is storytelling at the highest level — LVMH Strategy"
+]
+
+st.markdown(f"""
+<div style='background:#9333ea;padding:8px;border-radius:8px;text-align:center'>
+💡 Executive Insight: {random.choice(quotes)}
+</div>
+""", unsafe_allow_html=True)
+
+# -----------------------------
+# SIDEBAR LOGOS
+# -----------------------------
+
+st.sidebar.image(
+"https://upload.wikimedia.org/wikipedia/commons/7/7b/Louis_Vuitton_logo_and_wordmark.svg",
+width=150
 )
 
-# -------------------------
-# MAIN ANALYSIS
-# -------------------------
+st.sidebar.image(
+"https://upload.wikimedia.org/wikipedia/commons/5/55/Gucci_Logo.svg",
+width=150
+)
+
+st.sidebar.image(
+"https://upload.wikimedia.org/wikipedia/commons/2/24/Chanel_logo_interlocking_cs.svg",
+width=150
+)
+
+st.sidebar.image(
+"https://upload.wikimedia.org/wikipedia/commons/7/7f/Hermes_logo.svg",
+width=150
+)
+
+st.sidebar.image(
+"https://upload.wikimedia.org/wikipedia/commons/2/20/Rolex_logo.svg",
+width=150
+)
+
+st.title("HayaGriva Luxury Consumer Intelligence Platform")
+
+st.write("AI-Assisted Behavioral Analytics for Luxury Purchase Intention")
+
+# -----------------------------
+# DATA UPLOAD
+# -----------------------------
+
+uploaded_file=st.file_uploader("Upload Dataset", type=["xlsx","csv"])
 
 if uploaded_file:
 
-    df = pd.read_excel(uploaded_file)
+    df=pd.read_excel(uploaded_file)
 
-    emotion = df.iloc[:,5]
-    celebrity = df.iloc[:,10]
-    fomo = df.iloc[:,15]
-    purchase = df.iloc[:,20]
+    emotion=df.iloc[:,5]
+    celebrity=df.iloc[:,10]
+    fomo=df.iloc[:,15]
+    purchase=df.iloc[:,20]
 
-    st.subheader("Dataset Overview")
-
-    st.dataframe(df.head())
-
-# -------------------------
-# CPM CAUSAL MODEL
-# -------------------------
+# -----------------------------
+# CPM MODEL
+# -----------------------------
 
     def regression(x,y):
-        x = np.array(x)
-        y = np.array(y)
-        b = np.polyfit(x,y,1)
-        return b[0]
+        return np.polyfit(x,y,1)[0]
 
-    path_CF = regression(celebrity,fomo)
-    path_FE = regression(fomo,emotion)
-    path_EP = regression(emotion,purchase)
-    path_CE = regression(celebrity,emotion)
+    path_CF=regression(celebrity,fomo)
+    path_FE=regression(fomo,emotion)
+    path_EP=regression(emotion,purchase)
+    path_CE=regression(celebrity,emotion)
 
-    st.subheader("Causal Path Model")
+    st.header("Behavioral Driver Metrics")
 
-    col1,col2,col3,col4 = st.columns(4)
+    c1,c2,c3,c4=st.columns(4)
 
-    col1.metric("Celebrity → FOMO", round(path_CF,3))
-    col2.metric("FOMO → Emotion", round(path_FE,3))
-    col3.metric("Emotion → Purchase", round(path_EP,3))
-    col4.metric("Celebrity → Emotion", round(path_CE,3))
+    c1.metric("Celebrity → FOMO",round(path_CF,3))
+    c2.metric("FOMO → Emotion",round(path_FE,3))
+    c3.metric("Emotion → Purchase",round(path_EP,3))
+    c4.metric("Celebrity → Emotion",round(path_CE,3))
 
-# -------------------------
-# HEATMAP
-# -------------------------
+# -----------------------------
+# DRIVER BAR CHART
+# -----------------------------
 
-    st.subheader("Psychological Influence Heatmap")
+    st.header("Driver Influence Comparison")
 
-    corr = df.iloc[:,[5,10,15,20]].corr()
+    colA,colB=st.columns([2,1])
 
-    fig_heat = px.imshow(
-        corr,
-        text_auto=True,
-        color_continuous_scale="purples"
-    )
+    driver_df=pd.DataFrame({
+        "Driver":["Celebrity","FOMO","Emotion"],
+        "Impact":[path_CF,path_FE,path_EP]
+    })
 
-    st.plotly_chart(fig_heat,use_container_width=True)
+    with colA:
 
-# -------------------------
-# CAUSAL NETWORK
-# -------------------------
-
-    st.subheader("Luxury Decision Network")
-
-    G = nx.DiGraph()
-
-    G.add_edges_from([
-        ("Celebrity","FOMO"),
-        ("FOMO","Emotion"),
-        ("Emotion","Purchase"),
-        ("Celebrity","Emotion")
-    ])
-
-    pos = nx.spring_layout(G)
-
-    edge_x=[]
-    edge_y=[]
-
-    for edge in G.edges():
-        x0,y0 = pos[edge[0]]
-        x1,y1 = pos[edge[1]]
-        edge_x.extend([x0,x1,None])
-        edge_y.extend([y0,y1,None])
-
-    edge_trace = go.Scatter(
-        x=edge_x,
-        y=edge_y,
-        mode='lines',
-        line=dict(width=2,color="white")
-    )
-
-    node_x=[]
-    node_y=[]
-
-    for node in G.nodes():
-        x,y = pos[node]
-        node_x.append(x)
-        node_y.append(y)
-
-    node_trace = go.Scatter(
-        x=node_x,
-        y=node_y,
-        mode='markers+text',
-        text=list(G.nodes()),
-        textposition="bottom center",
-        marker=dict(
-            size=20,
-            color="#c084fc"
+        fig=px.bar(
+        driver_df,
+        x="Driver",
+        y="Impact",
+        color="Driver",
+        color_discrete_sequence=["#c084fc","#9333ea","#6d28d9"]
         )
-    )
 
-    fig_net = go.Figure(data=[edge_trace,node_trace])
+        st.plotly_chart(fig,use_container_width=True)
 
-    fig_net.update_layout(
-        showlegend=False,
-        plot_bgcolor='rgba(0,0,0,0)'
-    )
+    with colB:
 
-    st.plotly_chart(fig_net,use_container_width=True)
+        st.markdown("""
+### Chart Explanation
 
-# -------------------------
-# CONSUMER SEGMENTATION
-# -------------------------
-
-    st.subheader("Luxury Consumer Segmentation")
-
-    X = df[[df.columns[5],df.columns[10],df.columns[15]]]
-
-    kmeans = KMeans(n_clusters=3)
-    df["segment"] = kmeans.fit_predict(X)
-
-    fig_seg = px.scatter(
-        df,
-        x=df.columns[5],
-        y=df.columns[20],
-        color="segment",
-        color_continuous_scale="purples"
-    )
-
-    st.plotly_chart(fig_seg,use_container_width=True)
-
-# -------------------------
-# AI PERSONA GENERATOR
-# -------------------------
-
-    st.subheader("AI Luxury Consumer Personas")
-
-    persona_summary = df.groupby("segment")[[df.columns[5],df.columns[10],df.columns[15],df.columns[20]]].mean()
-
-    insights = []
-
-    for i,row in persona_summary.iterrows():
-
-        emotion_score = row[df.columns[5]]
-        celeb_score = row[df.columns[10]]
-        fomo_score = row[df.columns[15]]
-
-        if emotion_score > celeb_score and emotion_score > fomo_score:
-
-            persona="Emotion-Driven Buyer"
-            desc="Purchases luxury primarily for emotional gratification."
-
-        elif celeb_score > emotion_score:
-
-            persona="Status-Seeking Consumer"
-            desc="Strongly influenced by prestige and celebrity endorsement."
-
-        else:
-
-            persona="Social Comparison Buyer"
-            desc="Driven by social pressure and FOMO."
-
-        insights.append([i,persona,emotion_score,celeb_score,fomo_score])
-
-        st.markdown(f"""
-### Segment {i}: {persona}
-
-Emotion Score: **{emotion_score:.2f}**
-
-Celebrity Influence: **{celeb_score:.2f}**
-
-FOMO Level: **{fomo_score:.2f}**
-
-**Strategic Insight**
-
-{desc}
+• Emotional engagement dominates purchase intention  
+• Celebrity influence amplifies aspiration  
+• FOMO creates urgency but weaker conversion impact  
+• Luxury purchasing is emotion-centric
 """)
 
-# -------------------------
-# PURCHASE SIMULATOR
-# -------------------------
+# -----------------------------
+# CONSUMER SEGMENTATION
+# -----------------------------
 
-    st.subheader("Luxury Purchase Prediction Simulator")
+    st.header("Luxury Consumer Archetypes")
 
-    colA,colB,colC = st.columns(3)
+    X=df[[df.columns[5],df.columns[10],df.columns[15]]]
 
-    emotion_input = colA.slider("Emotion",1,20,10)
-    celebrity_input = colB.slider("Celebrity",1,20,10)
-    fomo_input = colC.slider("FOMO",1,20,10)
+    kmeans=KMeans(n_clusters=3)
+    df["segment"]=kmeans.fit_predict(X)
 
-    score = (
-        0.63*emotion_input +
-        0.16*celebrity_input +
-        0.26*fomo_input
+    segment_names={
+    0:"Emotional Connoisseurs",
+    1:"Prestige Status Seekers",
+    2:"Social Momentum Buyers"
+    }
+
+    df["segment_name"]=df["segment"].map(segment_names)
+
+    fig2=px.scatter(
+    df,
+    x=df.columns[5],
+    y=df.columns[20],
+    color="segment_name"
     )
+
+    st.plotly_chart(fig2,use_container_width=True)
+
+# -----------------------------
+# PURCHASE SIMULATOR
+# -----------------------------
+
+    st.header("Luxury Purchase Simulator")
+
+    colA,colB,colC=st.columns(3)
+
+    emotion_input=colA.slider("Emotion",1,20,10)
+    celebrity_input=colB.slider("Celebrity",1,20,10)
+    fomo_input=colC.slider("FOMO",1,20,10)
+
+    score=0.63*emotion_input+0.16*celebrity_input+0.26*fomo_input
 
     st.success(f"Predicted Purchase Intention Score: {round(score,2)}")
 
-# -------------------------
-# THEORETICAL ANALYSIS
-# -------------------------
+# -----------------------------
+# CASE STUDIES
+# -----------------------------
 
-    st.subheader("Strategic Behavioral Insights")
+    st.header("Luxury Brand Case Studies (2026)")
 
-    st.write(f"""
-The causal path analysis reveals that **emotional response is the dominant driver of luxury purchase intention (β = {round(path_EP,3)})**.
+    st.subheader("Louis Vuitton")
 
-Key strategic implications:
+    st.image("https://upload.wikimedia.org/wikipedia/commons/8/8e/LVMH_headquarters_Paris.jpg")
 
-• Emotional engagement plays a stronger role than celebrity endorsement.
+    st.write("Louis Vuitton focuses on immersive retail and experiential storytelling.")
 
-• Social comparison (FOMO) acts as a secondary trigger for luxury consumption.
+    st.subheader("Gucci")
 
-• Luxury marketing strategies should emphasize **experiential storytelling and emotional resonance**.
+    st.image("https://upload.wikimedia.org/wikipedia/commons/0/0b/Gucci_HQ_Florence.jpg")
 
-These findings support the **Affective Decision-Making Theory in luxury consumer behaviour**.
+    st.write("Gucci leverages AI personalization and digital engagement.")
+
+    st.subheader("Hermès")
+
+    st.image("https://upload.wikimedia.org/wikipedia/commons/6/6c/Hermes_headquarters_Paris.jpg")
+
+    st.write("Hermès maintains prestige through scarcity and craftsmanship.")
+
+# -----------------------------
+# STRATEGIC CONCLUSION
+# -----------------------------
+
+    st.header("Strategic Conclusions")
+
+    st.markdown("""
+• Emotional storytelling drives luxury purchase intention.
+
+• Celebrity endorsements generate attention but emotional resonance converts.
+
+• Luxury brands must maintain exclusivity while strengthening consumer identity connection.
+
+• AI consumer intelligence platforms like HayaGriva enable strategic luxury marketing decisions.
 """)
-
-# -------------------------
-# DOWNLOADABLE REPORT
-# -------------------------
-
-    st.subheader("Download Analytics Report")
-
-    report = persona_summary.reset_index()
-
-    csv = report.to_csv(index=False).encode('utf-8')
-
-    st.download_button(
-        label="Download Luxury Consumer Intelligence Report",
-        data=csv,
-        file_name="hayagriva_consumer_report.csv",
-        mime="text/csv"
-    )

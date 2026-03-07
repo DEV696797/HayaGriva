@@ -1,6 +1,9 @@
 streamlit
 pandas
+numpy
 plotly
 scikit-learn
-networkx
+requests
+feedparser
 openpyxl
+reportlab
