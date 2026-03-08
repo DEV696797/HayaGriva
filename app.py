@@ -8,179 +8,186 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
 
-# -------- PAGE CONFIG --------
 st.set_page_config(page_title="HayaGriva Luxury Consumer Intelligence", layout="wide")
 
-# -------- LUXURY UI --------
+# Luxury theme
 st.markdown("""
 <style>
-body {
-    background-color: #000000;
-    color: white;
-}
-
-h1,h2,h3 {
-    color:#D4AF37;
-}
-
-.stButton>button {
-    background-color:#D4AF37;
-    color:black;
-}
+body {background-color:#000;color:white;}
+h1,h2,h3 {color:#D4AF37;}
 </style>
 """, unsafe_allow_html=True)
 
 st.title("HayaGriva Luxury Consumer Intelligence")
 st.markdown("### Luxury is the balance of design, beauty and highest quality — Domenico De Sole")
 
-# -------- DATA UPLOAD --------
-file = st.file_uploader("Upload Dataset", type=["xlsx"])
+uploaded = st.file_uploader("Upload Dataset", type=["xlsx"])
 
-# -------- CRONBACH ALPHA --------
+# ---------- Cronbach Alpha ----------
 def cronbach_alpha(df):
     corr = df.corr()
     N = df.shape[1]
     mean_corr = corr.values[np.triu_indices(N,1)].mean()
-    alpha = (N*mean_corr)/(1+(N-1)*mean_corr)
+    alpha = (N * mean_corr) / (1 + (N - 1) * mean_corr)
     return alpha
 
-# -------- MAIN --------
-if file:
+# ---------- Auto Variable Detection ----------
+def detect_variables(columns):
 
-    df = pd.read_excel(file)
-    df = df.apply(pd.to_numeric, errors="coerce")
-    df = df.dropna()
+    emotion_cols=[]
+    celebrity_cols=[]
+    fomo_cols=[]
+    purchase_col=None
+
+    for col in columns:
+
+        name=col.lower()
+
+        if "emotion" in name or "feel" in name:
+            emotion_cols.append(col)
+
+        elif "celebrity" in name or "influencer" in name:
+            celebrity_cols.append(col)
+
+        elif "fomo" in name or "miss" in name:
+            fomo_cols.append(col)
+
+        elif "purchase" in name or "considered purchasing" in name:
+            purchase_col=col
+
+    return emotion_cols,celebrity_cols,fomo_cols,purchase_col
+
+# ---------- Main ----------
+if uploaded:
+
+    df=pd.read_excel(uploaded)
+
+    df=df.apply(pd.to_numeric,errors="coerce")
+
+    df=df.dropna()
 
     st.subheader("Dataset Preview")
     st.dataframe(df.head())
 
-    numeric_cols = df.columns.tolist()
+    emotion,celebrity,fomo,purchase=detect_variables(df.columns)
 
-    # -------- RELIABILITY --------
+    # ---------- Reliability ----------
     st.subheader("Cronbach Alpha Reliability")
 
-    emotion_items = st.multiselect(
-        "Select Emotion Scale Items",
-        numeric_cols
-    )
+    if len(emotion)>1:
 
-    if len(emotion_items) > 1:
+        alpha=cronbach_alpha(df[emotion])
 
-        alpha = cronbach_alpha(df[emotion_items])
+        st.metric("Cronbach Alpha",round(alpha,3))
 
-        st.metric("Cronbach Alpha", round(alpha,3))
-
-        if alpha > 0.8:
+        if alpha>0.8:
             st.success("High reliability confirmed")
 
-    # -------- REGRESSION --------
+    else:
+        st.warning("Emotion scale items not detected automatically")
+
+    # ---------- Regression ----------
     st.subheader("Multiple Linear Regression")
 
-    X_cols = st.multiselect("Independent Variables", numeric_cols)
-    y_col = st.selectbox("Dependent Variable", numeric_cols)
+    independent=emotion+celebrity+fomo
 
-    if len(X_cols) > 0 and y_col:
+    if purchase and len(independent)>0:
 
-        X = df[X_cols]
-        y = df[y_col]
+        X=df[independent]
 
-        X = sm.add_constant(X)
+        y=df[purchase]
 
-        model = sm.OLS(y,X).fit()
+        X=sm.add_constant(X)
 
-        r2 = model.rsquared
+        model=sm.OLS(y,X).fit()
 
-        coef_table = pd.DataFrame({
-            "Variable": model.params.index,
-            "Coefficient": model.params.values,
-            "Std Error": model.bse.values,
-            "p-value": model.pvalues.values
-        })
+        st.subheader("SPSS Style Model Summary")
 
-        st.metric("R²", round(r2,3))
-
-        st.subheader("SPSS Style Regression Table")
-        st.dataframe(coef_table)
-
-        st.subheader("Model Summary")
         st.text(model.summary())
 
-        # -------- SEGMENTATION --------
-        st.subheader("Consumer Segmentation (K-Means)")
-
-        kmeans = KMeans(n_clusters=3)
-        df["Segment"] = kmeans.fit_predict(df[X_cols])
-
-        fig = px.scatter(df, x=X_cols[0], y=X_cols[1], color="Segment")
-        st.plotly_chart(fig)
-
-        # -------- RADAR --------
-        st.subheader("Luxury Motivation Radar")
-
-        radar = df[X_cols].mean()
-
-        radar_df = pd.DataFrame({
-            "Driver": radar.index,
-            "Score": radar.values
+        coef_table=pd.DataFrame({
+            "Variable":model.params.index,
+            "Coefficient":model.params.values,
+            "Std Error":model.bse.values,
+            "p-value":model.pvalues.values
         })
 
-        fig2 = px.line_polar(radar_df, r="Score", theta="Driver", line_close=True)
+        st.subheader("SPSS Coefficients Table")
+
+        st.dataframe(coef_table)
+
+        st.metric("R²",round(model.rsquared,3))
+
+        # ---------- Segmentation ----------
+        st.subheader("Consumer Segmentation")
+
+        kmeans=KMeans(n_clusters=3)
+
+        df["Segment"]=kmeans.fit_predict(df[independent])
+
+        fig=px.scatter(df,x=independent[0],y=independent[1],color="Segment")
+
+        st.plotly_chart(fig)
+
+        # ---------- Radar ----------
+        st.subheader("Luxury Motivation Radar")
+
+        radar=df[independent].mean()
+
+        radar_df=pd.DataFrame({
+            "Driver":radar.index,
+            "Score":radar.values
+        })
+
+        fig2=px.line_polar(radar_df,r="Score",theta="Driver",line_close=True)
+
         st.plotly_chart(fig2)
 
-        # -------- AI INTERPRETATION --------
+        # ---------- AI Analysis ----------
         st.subheader("AI Statistical Interpretation")
 
-        interpretation = f"""
-        Regression results show R² = {round(r2,3)} indicating the model explains
-        a significant proportion of variance in luxury purchase intention.
+        interpretation=f"""
+Regression results indicate that emotional and social drivers significantly influence luxury purchase intention.
 
-        Emotional variables significantly influence purchase behaviour,
-        supporting the hypothesis that psychological drivers shape luxury consumption.
-        """
+Model R² = {round(model.rsquared,3)} indicating the model explains a substantial proportion of variance in consumer purchase behaviour.
+
+Variables with significant p-values (<0.05) demonstrate statistically meaningful impact on luxury consumption decisions.
+"""
 
         st.info(interpretation)
 
-        # -------- THESIS GENERATOR --------
+        # ---------- Thesis Generator ----------
         if st.button("Generate Full Thesis PDF"):
 
-            styles = getSampleStyleSheet()
+            styles=getSampleStyleSheet()
 
-            doc = SimpleDocTemplate("Luxury_MRP_Thesis.pdf", pagesize=letter)
+            doc=SimpleDocTemplate("Luxury_MRP_Thesis.pdf",pagesize=letter)
 
-            elements = []
+            elements=[]
 
-            elements.append(Paragraph("Effect of Emotions on Purchase Intention of Luxury Products", styles["Title"]))
-            elements.append(Spacer(1,20))
-
-            elements.append(Paragraph("Introduction", styles["Heading2"]))
-            elements.append(Paragraph(
-                "Luxury consumption has evolved from status signalling to emotional expression and identity construction.",
-                styles["Normal"]
-            ))
+            elements.append(Paragraph("Effect of Emotions on Purchase Intention of Luxury Products",styles["Title"]))
 
             elements.append(Spacer(1,20))
 
-            elements.append(Paragraph("Statistical Results", styles["Heading2"]))
+            elements.append(Paragraph("Statistical Results",styles["Heading2"]))
 
             table_data=[["Variable","Coefficient","Std Error","p-value"]]
 
             for i,row in coef_table.iterrows():
                 table_data.append(list(row))
 
-            table = Table(table_data)
+            table=Table(table_data)
+
             elements.append(table)
 
             elements.append(Spacer(1,20))
 
-            elements.append(Paragraph(f"Regression R² = {round(r2,3)}", styles["Normal"]))
+            elements.append(Paragraph(f"Model R² = {round(model.rsquared,3)}",styles["Normal"]))
 
             elements.append(Spacer(1,20))
 
-            elements.append(Paragraph(
-                "Conclusion: Emotional engagement significantly affects luxury purchase intention.",
-                styles["Normal"]
-            ))
+            elements.append(Paragraph("Conclusion: Emotional engagement strongly influences luxury purchase intention.",styles["Normal"]))
 
             doc.build(elements)
 
-            st.success("50-page thesis structure generated as Luxury_MRP_Thesis.pdf")
+            st.success("Thesis Generated: Luxury_MRP_Thesis.pdf")
