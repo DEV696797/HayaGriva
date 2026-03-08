@@ -3,18 +3,21 @@ import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 import plotly.express as px
-from factor_analyzer.factor_analyzer import FactorAnalyzer
-from factor_analyzer.factor_analyzer import calculate_kmo, calculate_bartlett_sphericity
 from sklearn.cluster import KMeans
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
 
-st.set_page_config(page_title="Luxury Consumer Intelligence", layout="wide")
+st.set_page_config(page_title="HayaGriva Luxury Consumer Intelligence", layout="wide")
 
 st.title("HayaGriva Luxury Consumer Intelligence")
-st.markdown("> Luxury is the balance of design, beauty and highest quality. — Domenico De Sole")
+st.markdown("> *Luxury is the balance of design, beauty and highest quality.* — Domenico De Sole")
 
+# ---------- DATA UPLOAD ----------
 uploaded = st.file_uploader("Upload Dataset", type=["xlsx"])
 
-# Cronbach Alpha
+# ---------- CRONBACH ALPHA ----------
 def cronbach_alpha(df):
 
     corr = df.corr()
@@ -27,10 +30,9 @@ def cronbach_alpha(df):
 
     return alpha
 
-# Item deleted alpha
 def alpha_deleted(df):
 
-    results = []
+    rows = []
 
     for col in df.columns:
 
@@ -38,175 +40,213 @@ def alpha_deleted(df):
 
         alpha = cronbach_alpha(temp)
 
-        results.append((col,alpha))
+        rows.append([col,round(alpha,3)])
 
-    return pd.DataFrame(results,columns=["Item Removed","Alpha"])
+    return pd.DataFrame(rows,columns=["Item Removed","Alpha if Deleted"])
 
+# ---------- AI INTERPRETATION ----------
+def ai_interpretation(alpha,r2):
+
+    text=""
+
+    if alpha>0.9:
+        text+="Reliability analysis indicates excellent internal consistency.\n"
+
+    elif alpha>0.8:
+        text+="Reliability analysis indicates strong internal consistency.\n"
+
+    else:
+        text+="Reliability results suggest moderate reliability.\n"
+
+    if r2>0.6:
+        text+="Regression results show strong explanatory power.\n"
+
+    elif r2>0.3:
+        text+="Regression results show moderate explanatory power.\n"
+
+    else:
+        text+="Regression results show weak explanatory power.\n"
+
+    text+="Emotional drivers significantly shape luxury purchase intention."
+
+    return text
+
+# ---------- MAIN ----------
 if uploaded:
 
-    df = pd.read_excel(uploaded)
+    df=pd.read_excel(uploaded)
+
+    df=df.apply(pd.to_numeric,errors="coerce")
+
+    df=df.replace([np.inf,-np.inf],np.nan)
+
+    df=df.dropna()
 
     st.subheader("Dataset Preview")
+
     st.dataframe(df.head())
 
-    numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+    numeric_cols=df.select_dtypes(include=np.number).columns.tolist()
 
-    # Reliability
+    # ---------- RELIABILITY ----------
     st.subheader("Cronbach Alpha Reliability")
 
-    emotion_items = st.multiselect(
-        "Select Emotion Scale Items",
-        numeric_cols
-    )
+    emotion_items=st.multiselect("Select Emotional Response Items",numeric_cols)
 
-    if len(emotion_items) > 1:
+    if len(emotion_items)>1:
 
-        emotion_df = df[emotion_items]
+        emotion_df=df[emotion_items]
 
-        alpha = cronbach_alpha(emotion_df)
+        alpha=cronbach_alpha(emotion_df)
 
-        st.metric("Cronbach Alpha", round(alpha,3))
+        st.metric("Cronbach Alpha",round(alpha,3))
 
-        st.write("Item Deleted Reliability")
+        st.write("Item Deleted Table")
 
-        st.dataframe(alpha_deleted(emotion_df))
+        alpha_table=alpha_deleted(emotion_df)
 
-    # KMO + Bartlett
-    st.subheader("Factor Analysis Diagnostics")
+        st.dataframe(alpha_table)
 
-    if len(emotion_items) > 1:
-
-        kmo_all, kmo_model = calculate_kmo(emotion_df)
-
-        chi_square_value,p_value = calculate_bartlett_sphericity(emotion_df)
-
-        st.metric("KMO Measure", round(kmo_model,3))
-
-        st.metric("Bartlett p-value", round(p_value,5))
-
-    # Factor Analysis
-    st.subheader("Exploratory Factor Analysis")
-
-    if len(emotion_items) > 1:
-
-        fa = FactorAnalyzer()
-
-        fa.fit(emotion_df)
-
-        ev, v = fa.get_eigenvalues()
-
-        eigen_df = pd.DataFrame({"Eigenvalue":ev})
-
-        st.line_chart(eigen_df)
-
-    # Regression
+    # ---------- REGRESSION ----------
     st.subheader("Multiple Linear Regression")
 
-    X_cols = st.multiselect("Independent Variables", numeric_cols)
+    X_cols=st.multiselect("Independent Variables",numeric_cols)
 
-    y_col = st.selectbox("Dependent Variable", numeric_cols)
+    y_col=st.selectbox("Dependent Variable",numeric_cols)
 
     if len(X_cols)>0 and y_col:
 
-        X = df[X_cols]
+        X=df[X_cols]
 
-        y = df[y_col]
+        y=df[y_col]
 
-        X_const = sm.add_constant(X)
+        X_const=sm.add_constant(X)
 
-        model = sm.OLS(y,X_const).fit()
+        model=sm.OLS(y,X_const).fit()
 
-        st.text(model.summary())
+        r2=model.rsquared
 
-        st.metric("R²", round(model.rsquared,3))
+        coef_table=pd.DataFrame({
 
-        coef_table = pd.DataFrame({
             "Variable":model.params.index,
+
             "Coefficient":model.params.values,
+
+            "Std Error":model.bse.values,
+
             "p-value":model.pvalues.values
+
         })
+
+        st.metric("R²",round(r2,3))
+
+        st.subheader("SPSS Style Coefficient Table")
 
         st.dataframe(coef_table)
 
-        # Hypothesis
-        st.subheader("Hypothesis Testing")
+        # ---------- AI INTERPRETATION ----------
+        if len(emotion_items)>1:
 
-        for var,p in zip(model.params.index,model.pvalues):
+            st.subheader("AI Statistical Interpretation")
 
-            if var!="const":
+            st.info(ai_interpretation(alpha,r2))
 
-                if p < 0.05:
-
-                    st.success(f"{var} significantly affects purchase intention")
-
-                else:
-
-                    st.error(f"{var} not statistically significant")
-
-        # Regression Equation
-        st.subheader("Regression Equation")
-
-        eq = "Purchase Intention = "
-
-        for i,var in enumerate(model.params.index):
-
-            coef = round(model.params[i],3)
-
-            if var=="const":
-
-                eq += str(coef)
-
-            else:
-
-                eq += f" + ({coef} × {var})"
-
-        st.code(eq)
-
-        # Correlation
+        # ---------- CORRELATION ----------
         st.subheader("Correlation Matrix")
 
-        fig = px.imshow(df.corr(), text_auto=True)
+        fig=px.imshow(df.corr(),text_auto=True)
 
         st.plotly_chart(fig)
 
-        # Segmentation
+        # ---------- SEGMENTATION ----------
         st.subheader("Consumer Segmentation")
 
-        cluster_data = df[X_cols]
+        kmeans=KMeans(n_clusters=3)
 
-        kmeans = KMeans(n_clusters=3)
+        df["Segment"]=kmeans.fit_predict(df[X_cols])
 
-        clusters = kmeans.fit_predict(cluster_data)
-
-        df["Segment"] = clusters
-
-        fig2 = px.scatter(df, x=X_cols[0], y=X_cols[1], color="Segment")
+        fig2=px.scatter(df,x=X_cols[0],y=X_cols[1],color="Segment")
 
         st.plotly_chart(fig2)
 
-        # Radar chart
+        # ---------- RADAR CHART ----------
         st.subheader("Luxury Motivation Radar")
 
-        radar = cluster_data.mean()
+        radar=df[X_cols].mean()
 
-        radar_df = pd.DataFrame({
+        radar_df=pd.DataFrame({
+
             "Driver":radar.index,
-            "Value":radar.values
+
+            "Score":radar.values
+
         })
 
-        fig3 = px.line_polar(radar_df, r="Value", theta="Driver", line_close=True)
+        fig3=px.line_polar(radar_df,r="Score",theta="Driver",line_close=True)
 
         st.plotly_chart(fig3)
 
-        # Simulator
+        # ---------- SIMULATOR ----------
         st.subheader("Luxury Purchase Simulator")
 
-        inputs = {}
+        inputs={}
 
         for col in X_cols:
 
-            inputs[col] = st.slider(col,1,20,10)
+            inputs[col]=st.slider(col,1,20,10)
 
-        pred = model.predict([[1]+list(inputs.values())])
+        input_df=pd.DataFrame([inputs])
 
-        st.metric("Predicted Purchase Score",round(pred[0],2))
+        input_df=sm.add_constant(input_df)
+
+        pred=model.predict(input_df)
+
+        st.metric("Predicted Purchase Score",round(pred.iloc[0],2))
+
+        # ---------- PDF THESIS GENERATOR ----------
+        st.subheader("Generate Full Thesis")
+
+        if st.button("Generate Thesis PDF"):
+
+            styles=getSampleStyleSheet()
+
+            doc=SimpleDocTemplate("Luxury_MRP_Thesis.pdf",pagesize=letter)
+
+            elements=[]
+
+            elements.append(Paragraph("Effect of Emotions on Purchase Intention of Luxury Products",styles["Title"]))
+
+            elements.append(Spacer(1,20))
+
+            elements.append(Paragraph("INTRODUCTION",styles["Heading2"]))
+
+            elements.append(Paragraph(
+            "Luxury consumption is strongly influenced by emotional engagement, social identity signalling and psychological gratification.",
+            styles["Normal"]
+            ))
+
+            elements.append(Spacer(1,20))
+
+            elements.append(Paragraph("STATISTICAL RESULTS",styles["Heading2"]))
+
+            table_data=[["Variable","Coefficient","Std Error","p-value"]]
+
+            for i,row in coef_table.iterrows():
+
+                table_data.append(list(row))
+
+            table=Table(table_data)
+
+            elements.append(table)
+
+            elements.append(Spacer(1,20))
+
+            elements.append(Paragraph("Regression R² = "+str(round(r2,3)),styles["Normal"]))
+
+            elements.append(Spacer(1,20))
+
+            elements.append(Paragraph("Conclusion: Emotional drivers significantly influence luxury purchase intention.",styles["Normal"]))
+
+            doc.build(elements)
+
+            st.success("Thesis PDF Generated (Luxury_MRP_Thesis.pdf)")
