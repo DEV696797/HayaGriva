@@ -4,5 +4,6 @@ numpy
 statsmodels
 plotly
 scikit-learn
+factor_analyzer
 reportlab
 openpyxl
