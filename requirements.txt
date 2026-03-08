@@ -3,4 +3,6 @@ pandas
 numpy
 statsmodels
 plotly
+factor_analyzer
+scikit-learn
 openpyxl
